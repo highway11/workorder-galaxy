@@ -1,7 +1,7 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, User, Filter } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type UserRole = 'admin' | 'enter-only';
 
@@ -25,45 +29,73 @@ type UserData = {
   name: string;
   email: string;
   role: UserRole;
-  groups: string[];
+  groups: {
+    group_name: string;
+  }[];
 };
 
 const Users = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
+
   useEffect(() => {
     document.title = "Users | WorkOrder App";
   }, []);
 
-  // Mock data
-  const users: UserData[] = [
-    {
-      id: "U001",
-      name: "John Smith",
-      email: "john.smith@example.com",
-      role: "admin",
-      groups: ["Building Maintenance", "Aquatic Centre"]
+  const { data: users, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          email,
+          role,
+          user_groups(
+            group_id,
+            groups(name)
+          )
+        `);
+
+      if (error) {
+        console.error("Error fetching users:", error);
+        throw error;
+      }
+
+      // Transform the data to match our UserData type
+      return data.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as UserRole,
+        groups: user.user_groups 
+          ? user.user_groups
+              .filter(ug => ug.groups) // Filter out any null groups
+              .map(ug => ({ 
+                group_name: ug.groups.name 
+              }))
+          : []
+      }));
     },
-    {
-      id: "U002",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@example.com",
-      role: "enter-only",
-      groups: ["West Wing"]
-    },
-    {
-      id: "U003",
-      name: "Michael Brown",
-      email: "michael.brown@example.com",
-      role: "admin",
-      groups: ["Building Maintenance"]
-    },
-    {
-      id: "U004",
-      name: "Lisa Davis",
-      email: "lisa.davis@example.com",
-      role: "enter-only",
-      groups: ["Cafeteria"]
+  });
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error fetching users",
+        description: "There was a problem loading the users. Please try again.",
+        variant: "destructive",
+      });
     }
-  ];
+  }, [error, toast]);
+
+  const filteredUsers = users 
+    ? users.filter(user => 
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
 
   const getRoleBadgeClass = (role: UserRole) => {
     switch (role) {
@@ -138,6 +170,8 @@ const Users = () => {
                       type="search"
                       placeholder="Search users..."
                       className="pl-8 w-full sm:w-[260px]"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   <Button variant="outline" size="icon">
@@ -147,63 +181,130 @@ const Users = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead className="hidden md:table-cell">Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead className="hidden lg:table-cell">Groups</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {getInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                              <Link 
-                                to={`/users/${user.id}`}
-                                className="font-medium hover:underline text-primary"
-                              >
-                                {user.name}
-                              </Link>
-                              <span className="text-xs text-muted-foreground md:hidden">
-                                {user.email}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={getRoleBadgeClass(user.role)}>
-                            {formatRole(user.role)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <div className="flex flex-wrap gap-1">
-                            {user.groups.map((group, index) => (
-                              <Badge 
-                                key={index} 
-                                variant="outline" 
-                                className="bg-background"
-                              >
-                                {group}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
+              {isLoading ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead className="hidden md:table-cell">Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="hidden lg:table-cell">Groups</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-[120px]" />
+                                <Skeleton className="h-3 w-[150px] md:hidden" />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <Skeleton className="h-4 w-[200px]" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-[80px]" />
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="flex flex-wrap gap-1">
+                              <Skeleton className="h-6 w-[100px]" />
+                              <Skeleton className="h-6 w-[80px]" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : error ? (
+                <div className="rounded-md border p-8 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <AlertCircle className="h-8 w-8 text-destructive" />
+                    <h3 className="font-semibold text-lg">Failed to load users</h3>
+                    <p className="text-muted-foreground">
+                      There was an error loading the user data. Please try again later.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => window.location.reload()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                </div>
+              ) : users?.length === 0 ? (
+                <div className="rounded-md border p-8 text-center">
+                  <p className="text-muted-foreground">No users found. Create your first user to get started.</p>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead className="hidden md:table-cell">Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="hidden lg:table-cell">Groups</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.id} className="hover:bg-muted/50">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback className="bg-primary/10 text-primary">
+                                  {getInitials(user.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <Link 
+                                  to={`/users/${user.id}`}
+                                  className="font-medium hover:underline text-primary"
+                                >
+                                  {user.name}
+                                </Link>
+                                <span className="text-xs text-muted-foreground md:hidden">
+                                  {user.email}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={getRoleBadgeClass(user.role)}>
+                              {formatRole(user.role)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="flex flex-wrap gap-1">
+                              {user.groups.length > 0 ? (
+                                user.groups.map((group, index) => (
+                                  <Badge 
+                                    key={index} 
+                                    variant="outline" 
+                                    className="bg-background"
+                                  >
+                                    {group.group_name}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No groups assigned</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

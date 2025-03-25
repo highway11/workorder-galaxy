@@ -9,13 +9,241 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      user_groups: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workorder_details: {
+        Row: {
+          comment: string | null
+          cost: number | null
+          created_at: string
+          created_by: string
+          detail_type: string
+          file_name: string | null
+          file_path: string | null
+          hours: number | null
+          id: string
+          workorder_id: string
+        }
+        Insert: {
+          comment?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by: string
+          detail_type: string
+          file_name?: string | null
+          file_path?: string | null
+          hours?: number | null
+          id?: string
+          workorder_id: string
+        }
+        Update: {
+          comment?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string
+          detail_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          hours?: number | null
+          id?: string
+          workorder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workorder_details_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workorder_details_workorder_id_fkey"
+            columns: ["workorder_id"]
+            isOneToOne: false
+            referencedRelation: "workorders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workorders: {
+        Row: {
+          complete_by: string
+          created_at: string
+          created_by: string
+          date: string
+          description: string | null
+          gl_number: string | null
+          group_id: string
+          id: string
+          item: string
+          location_id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          complete_by: string
+          created_at?: string
+          created_by: string
+          date?: string
+          description?: string | null
+          gl_number?: string | null
+          group_id: string
+          id?: string
+          item: string
+          location_id: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          complete_by?: string
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string | null
+          gl_number?: string | null
+          group_id?: string
+          id?: string
+          item?: string
+          location_id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workorders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workorders_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workorders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
+      user_in_group: {
+        Args: {
+          user_id: string
+          check_group_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

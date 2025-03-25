@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutGrid, Users, FileText, MapPin, 
   Settings, LogOut, Menu, X, ChevronRight
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 
 type NavItem = {
   title: string;
@@ -49,9 +50,12 @@ const navItems: NavItem[] = [
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(true); // Temporarily set true for development
+  const { profile, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
+  
+  const isAdmin = profile?.role === 'admin';
 
   // Close menu when changing routes on mobile
   useEffect(() => {
@@ -68,6 +72,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       setIsMenuOpen(false);
     }
   }, [isMobile]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -147,12 +156,13 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         
         {/* Profile/Logout */}
         <div className="p-4">
-          <Link
-            to="/logout"
+          <Button
+            variant="ghost"
             className={cn(
-              "flex items-center h-10 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors",
+              "flex items-center justify-start w-full h-10 px-3 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors",
               !isMenuOpen && "justify-center"
             )}
+            onClick={handleLogout}
           >
             <LogOut className="h-5 w-5 mr-3" />
             <span className={cn(
@@ -161,7 +171,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             )}>
               Logout
             </span>
-          </Link>
+          </Button>
         </div>
       </aside>
 
@@ -205,6 +215,12 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               </span>
             </div>
           </div>
+          
+          {profile && (
+            <div className="ml-auto">
+              <span className="text-sm font-medium">{profile.name}</span>
+            </div>
+          )}
         </header>
 
         {/* Content */}
