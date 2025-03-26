@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -190,6 +190,7 @@ const Users = () => {
                         <TableHead className="hidden md:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead className="hidden lg:table-cell">Groups</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -215,6 +216,9 @@ const Users = () => {
                               <Skeleton className="h-6 w-[100px]" />
                               <Skeleton className="h-6 w-[80px]" />
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-8 w-8 rounded-md" />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -251,6 +255,7 @@ const Users = () => {
                         <TableHead className="hidden md:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead className="hidden lg:table-cell">Groups</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -298,6 +303,17 @@ const Users = () => {
                                 <span className="text-xs text-muted-foreground">No groups assigned</span>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              asChild
+                            >
+                              <Link to={`/users/${user.id}`}>
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

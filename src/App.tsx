@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import Dashboard from "./pages/Index";
 import WorkOrders from "./pages/WorkOrders";
 import Locations from "./pages/Locations";
 import Users from "./pages/Users";
+import UserEdit from "./pages/UserEdit";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -56,6 +58,11 @@ const App = () => (
               <Route path="/users" element={
                 <ProtectedRoute>
                   <Users />
+                </ProtectedRoute>
+              } />
+              <Route path="/users/:id" element={
+                <ProtectedRoute>
+                  <UserEdit />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
