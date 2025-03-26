@@ -22,38 +22,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up the auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+    let isMounted = true; // Flag to prevent state updates on unmounted component
 
-        // If user is signed in, fetch their profile
-        if (currentSession?.user) {
-          await fetchUserProfile(currentSession.user.id);
-        } else {
-          setProfile(null);
+    const checkSession = async () => {
+        console.log("AuthContext: Checking session...");
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+
+            if (error) {
+                // Log the specific error from Supabase
+                console.error("AuthContext: Error getting session:", error.message);
+            }
+
+            if (isMounted) {
+                setUser(session?.user ?? null);
+                console.log("AuthContext: Session check complete. User:", session?.user ?? null);
+            }
+        } catch (catchError) {
+            // Catch any unexpected errors during the async operation
+            console.error("AuthContext: Unexpected error during getSession:", catchError);
+        } finally {
+            // *** Ensure loading is set to false even if there's an error ***
+            if (isMounted) {
+                setIsLoading(false);
+                console.log("AuthContext: Loading set to false.");
+            }
         }
+    };
 
-        setIsLoading(false);
-      }
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+            console.log("AuthContext: Auth state changed. Event:", _event, "Session:", session);
+            if (isMounted) {
+                setUser(session?.user ?? null);
+                // Optional: You might briefly set loading true/false here if needed,
+                // but the initial load is the main concern.
+                // setLoading(false); // Probably not needed here unless event causes loading state
+            }
+        }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-
-      // If user is signed in, fetch their profile
-      if (currentSession?.user) {
-        await fetchUserProfile(currentSession.user.id);
-      }
-
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    // Cleanup function
+    return () => {
+        isMounted = false;
+        if (subscription) {
+            subscription.unsubscribe();
+            console.log("AuthContext: Unsubscribed from auth state changes.");
+        }
+    };
+}, []); // Empty dependency array ensures this runs only once 
 
   const fetchUserProfile = async (userId: string) => {
     try {
