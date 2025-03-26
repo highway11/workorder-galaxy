@@ -51,6 +51,11 @@ const App = () => {
                     <WorkOrders />
                   </ProtectedRoute>
                 } />
+                <Route path="/workorders/:id" element={
+                  <ProtectedRoute>
+                    <WorkOrders />
+                  </ProtectedRoute>
+                } />
                 <Route path="/locations" element={
                   <ProtectedRoute>
                     <Locations />
