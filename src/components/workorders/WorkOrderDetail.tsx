@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -91,15 +90,20 @@ const WorkOrderDetail = () => {
     mutationFn: async () => {
       if (!id) throw new Error("Work Order ID is required");
       
+      console.log("Closing work order with status: completed");
+      
       const { error } = await supabase
         .from('workorders')
         .update({
-          status: 'closed',
+          status: 'completed', // Change from 'closed' to 'completed' which is allowed by the constraint
           closed_on: closeDate.toISOString()
         })
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workorder', id] });
@@ -369,7 +373,7 @@ const WorkOrderDetail = () => {
             <DialogTitle>Close Work Order</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="mb-4">Please select the date when this work order was closed:</p>
+            <p className="mb-4">Please select the date when this work order was completed:</p>
             <div className="flex flex-col space-y-2">
               <Popover>
                 <PopoverTrigger asChild>
@@ -384,7 +388,7 @@ const WorkOrderDetail = () => {
                     {closeDate ? format(closeDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                   <Calendar
                     mode="single"
                     selected={closeDate}

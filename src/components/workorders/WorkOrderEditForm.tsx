@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +49,7 @@ const formSchema = z.object({
   group_id: z.string({
     required_error: "Please select a group",
   }),
-  status: z.enum(['open', 'in-progress', 'completed', 'closed']),
+  status: z.enum(['open', 'in-progress', 'completed']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -80,7 +79,6 @@ interface WorkOrderEditFormProps {
 const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch locations
   const { data: locations } = useQuery({
     queryKey: ['locations'],
     queryFn: async () => {
@@ -94,7 +92,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     },
   });
 
-  // Fetch groups
   const { data: groups } = useQuery({
     queryKey: ['groups'],
     queryFn: async () => {
@@ -108,7 +105,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     },
   });
 
-  // Get location and group IDs
   const { data: locationData } = useQuery({
     queryKey: ['location', workOrder.location.name],
     queryFn: async () => {
@@ -137,6 +133,13 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     },
   });
 
+  const getValidStatus = (status: string): 'open' | 'in-progress' | 'completed' => {
+    if (status === 'open' || status === 'in-progress' || status === 'completed') {
+      return status as 'open' | 'in-progress' | 'completed';
+    }
+    return 'completed';
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -146,7 +149,7 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
       item: workOrder.item,
       description: workOrder.description || "",
       gl_number: workOrder.gl_number || "",
-      status: workOrder.status as 'open' | 'in-progress' | 'completed' | 'closed',
+      status: getValidStatus(workOrder.status),
       location_id: locationData?.id || "",
       group_id: groupData?.id || "",
     },
@@ -157,7 +160,7 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
       item: workOrder.item,
       description: workOrder.description || "",
       gl_number: workOrder.gl_number || "",
-      status: workOrder.status as 'open' | 'in-progress' | 'completed' | 'closed',
+      status: getValidStatus(workOrder.status),
       location_id: locationData?.id || "",
       group_id: groupData?.id || "",
     }
@@ -167,7 +170,8 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     try {
       setIsSubmitting(true);
       
-      // Update work order
+      console.log("Submitting values:", values);
+      
       const { error } = await supabase
         .from('workorders')
         .update({
@@ -180,18 +184,19 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           gl_number: values.gl_number || null,
           group_id: values.group_id,
           status: values.status,
-          // If status is 'closed' and wasn't before, set closed_on to now
-          ...(values.status === 'closed' && workOrder.status !== 'closed'
+          ...(values.status === 'completed' && workOrder.status !== 'completed'
               ? { closed_on: new Date().toISOString() }
               : {}),
-          // If status is not 'closed' and was before, clear closed_on
-          ...(values.status !== 'closed' && workOrder.status === 'closed'
+          ...(values.status !== 'completed' && workOrder.status === 'completed'
               ? { closed_on: null }
               : {})
         })
         .eq('id', workOrder.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
 
       onSuccess();
     } catch (error) {
@@ -206,7 +211,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Date */}
           <FormField
             control={form.control}
             name="date"
@@ -228,7 +232,7 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -242,7 +246,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
             )}
           />
 
-          {/* Complete By */}
           <FormField
             control={form.control}
             name="complete_by"
@@ -264,7 +267,7 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -279,7 +282,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           />
         </div>
 
-        {/* Status */}
         <FormField
           control={form.control}
           name="status"
@@ -296,7 +298,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -304,7 +305,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* Requested By */}
         <FormField
           control={form.control}
           name="requested_by"
@@ -319,7 +319,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* Item */}
         <FormField
           control={form.control}
           name="item"
@@ -334,7 +333,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* Location */}
         <FormField
           control={form.control}
           name="location_id"
@@ -360,7 +358,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* Group */}
         <FormField
           control={form.control}
           name="group_id"
@@ -386,7 +383,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* GL Number (Optional) */}
         <FormField
           control={form.control}
           name="gl_number"
@@ -401,7 +397,6 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           )}
         />
 
-        {/* Description */}
         <FormField
           control={form.control}
           name="description"
