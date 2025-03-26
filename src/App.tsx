@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // Pages
 import Dashboard from "./pages/Index";
 import WorkOrders from "./pages/WorkOrders";
+import WorkOrderDetail from "./components/workorders/WorkOrderDetail";
 import Locations from "./pages/Locations";
 import Users from "./pages/Users";
 import UserEdit from "./pages/UserEdit";
@@ -54,7 +55,7 @@ const App = () => {
                 } />
                 <Route path="/workorders/:id" element={
                   <ProtectedRoute>
-                    <WorkOrders />
+                    <WorkOrderDetail />
                   </ProtectedRoute>
                 } />
                 <Route path="/locations" element={

@@ -27,6 +27,7 @@ type WorkOrderStatus = 'open' | 'in-progress' | 'completed';
 
 type WorkOrder = {
   id: string;
+  wo_number: string | null;
   item: string;
   description: string | null;
   requested_by: string;
@@ -57,6 +58,7 @@ const WorkOrders = () => {
         .from('workorders')
         .select(`
           id, 
+          wo_number,
           item, 
           description, 
           requested_by, 
@@ -89,6 +91,7 @@ const WorkOrders = () => {
   const filteredWorkOrders = workOrders?.filter(order => {
     const searchLower = searchTerm.toLowerCase();
     return (
+      (order.wo_number?.toLowerCase().includes(searchLower) || false) ||
       order.id.toLowerCase().includes(searchLower) ||
       order.item.toLowerCase().includes(searchLower) ||
       order.description?.toLowerCase().includes(searchLower) ||
@@ -195,7 +198,7 @@ const WorkOrders = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID</TableHead>
+                        <TableHead>Work Order #</TableHead>
                         <TableHead>Item</TableHead>
                         <TableHead className="hidden md:table-cell">Location</TableHead>
                         <TableHead className="hidden lg:table-cell">Requested By</TableHead>
@@ -212,7 +215,7 @@ const WorkOrders = () => {
                               to={`/workorders/${order.id}`}
                               className="text-primary hover:underline"
                             >
-                              {order.id.substring(0, 8)}
+                              {order.wo_number || order.id.substring(0, 8)}
                             </Link>
                           </TableCell>
                           <TableCell>
