@@ -69,7 +69,7 @@ const WorkOrders = () => {
           status,
           gl_number
         `)
-        .order('date', { ascending: false });
+        .order('wo_number', { ascending: false });
       
       if (error) {
         console.error("Error fetching work orders:", error);
