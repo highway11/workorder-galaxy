@@ -72,6 +72,7 @@ const WorkOrders = () => {
         .order('date', { ascending: false });
       
       if (error) {
+        console.error("Error fetching work orders:", error);
         throw new Error(error.message);
       }
       

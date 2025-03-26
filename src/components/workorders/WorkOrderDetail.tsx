@@ -55,7 +55,11 @@ const WorkOrderDetail = () => {
         .eq('id', id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching work order:", error);
+        throw error;
+      }
+      
       return data as WorkOrder;
     },
     enabled: !!id,
