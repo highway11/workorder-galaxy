@@ -60,7 +60,12 @@ const WorkOrderDetail = () => {
         throw error;
       }
       
-      return data as WorkOrder;
+      // Only cast to WorkOrder if we have valid data
+      if (data) {
+        return data as WorkOrder;
+      }
+      
+      throw new Error("Work order not found");
     },
     enabled: !!id,
   });

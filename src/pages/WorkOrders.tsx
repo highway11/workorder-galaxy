@@ -76,7 +76,8 @@ const WorkOrders = () => {
         throw new Error(error.message);
       }
       
-      return data as WorkOrder[];
+      // Only cast to WorkOrder[] if we have valid data
+      return (data || []) as WorkOrder[];
     }
   });
 
