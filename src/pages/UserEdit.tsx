@@ -106,23 +106,19 @@ const UserEdit = () => {
       
       return data;
     },
-    enabled: !!id,
-    onSuccess: (data) => {
+    enabled: !!id
+  });
+
+  // Set form values when user data is loaded
+  useEffect(() => {
+    if (user) {
       profileForm.reset({
-        name: data.name,
-        email: data.email,
-        role: data.role as "admin" | "enter-only",
-      });
-    },
-    onError: (error) => {
-      console.error("Error fetching user:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load user data",
-        variant: "destructive",
+        name: user.name,
+        email: user.email,
+        role: user.role as "admin" | "enter-only",
       });
     }
-  });
+  }, [user, profileForm]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -221,6 +217,20 @@ const UserEdit = () => {
       .join('')
       .toUpperCase();
   };
+
+  // Handle errors from user query
+  useEffect(() => {
+    if (isLoadingUser) return;
+    
+    if (!user && id) {
+      console.error("User not found");
+      toast({
+        title: "Error",
+        description: "Failed to load user data",
+        variant: "destructive",
+      });
+    }
+  }, [isLoadingUser, user, id, toast]);
 
   return (
     <AppLayout>
