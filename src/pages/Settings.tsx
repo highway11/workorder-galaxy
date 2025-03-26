@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save } from 'lucide-react';
+import { Save, User2, Users, Bell } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import GroupsManager from '@/components/settings/GroupsManager';
 
 const Settings = () => {
   useEffect(() => {
@@ -34,10 +35,20 @@ const Settings = () => {
           transition={{ duration: 0.5 }}
         >
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="general">General</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 mb-8">
+              <TabsTrigger value="general">
+                <User2 className="h-4 w-4 mr-2" />
+                General
+              </TabsTrigger>
+              <TabsTrigger value="groups">
+                <Users className="h-4 w-4 mr-2" />
+                Groups
+              </TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="notifications">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="general">
@@ -86,6 +97,10 @@ const Settings = () => {
                   </Button>
                 </CardFooter>
               </Card>
+            </TabsContent>
+            
+            <TabsContent value="groups">
+              <GroupsManager />
             </TabsContent>
             
             <TabsContent value="appearance">
