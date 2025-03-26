@@ -1,8 +1,9 @@
+
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, User, MapPin, FileText } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, User, MapPin, FileText, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import WorkOrderForm from '@/components/workorders/WorkOrderForm';
@@ -43,6 +54,7 @@ type WorkOrder = {
 const WorkOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isNewWorkOrderOpen, setIsNewWorkOrderOpen] = useState(false);
+  const [workOrderToDelete, setWorkOrderToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -80,6 +92,50 @@ const WorkOrders = () => {
     }
   });
 
+  const deleteWorkOrderMutation = useMutation({
+    mutationFn: async (workOrderId: string) => {
+      // First delete related work order details
+      const { error: detailsError } = await supabase
+        .from('workorder_details')
+        .delete()
+        .eq('workorder_id', workOrderId);
+      
+      if (detailsError) {
+        console.error("Error deleting work order details:", detailsError);
+        throw new Error(detailsError.message);
+      }
+      
+      // Then delete the work order
+      const { error: workOrderError } = await supabase
+        .from('workorders')
+        .delete()
+        .eq('id', workOrderId);
+      
+      if (workOrderError) {
+        console.error("Error deleting work order:", workOrderError);
+        throw new Error(workOrderError.message);
+      }
+      
+      return workOrderId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workorders'] });
+      toast({
+        title: "Success!",
+        description: "Work order has been deleted.",
+      });
+      setWorkOrderToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete work order: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+      setWorkOrderToDelete(null);
+    }
+  });
+
   const handleNewWorkOrderSuccess = () => {
     setIsNewWorkOrderOpen(false);
     queryClient.invalidateQueries({ queryKey: ['workorders'] });
@@ -87,6 +143,16 @@ const WorkOrders = () => {
       title: "Success!",
       description: "Work order has been created.",
     });
+  };
+
+  const handleDeleteClick = (workOrderId: string) => {
+    setWorkOrderToDelete(workOrderId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (workOrderToDelete) {
+      deleteWorkOrderMutation.mutate(workOrderToDelete);
+    }
   };
 
   const filteredWorkOrders = workOrders?.filter(order => {
@@ -210,6 +276,7 @@ const WorkOrders = () => {
                         <TableHead className="hidden lg:table-cell">Created</TableHead>
                         <TableHead>Due By</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -240,6 +307,16 @@ const WorkOrders = () => {
                               {formatStatus(order.status)}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteClick(order.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -263,6 +340,26 @@ const WorkOrders = () => {
           <WorkOrderForm onSuccess={handleNewWorkOrderSuccess} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!workOrderToDelete} onOpenChange={(open) => !open && setWorkOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the work order and all related details. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
