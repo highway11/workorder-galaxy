@@ -55,6 +55,12 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
+  // Debug logging for profile and admin status
+  useEffect(() => {
+    console.log("AppLayout: Current profile:", profile);
+    console.log("AppLayout: Is admin?", profile?.role === 'admin');
+  }, [profile]);
+  
   const isAdmin = profile?.role === 'admin';
 
   // Close menu when changing routes on mobile
@@ -217,8 +223,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           {profile && (
-            <div className="ml-auto">
-              <span className="text-sm font-medium">{profile.name}</span>
+            <div className="ml-auto flex items-center">
+              <span className="text-sm font-medium mr-2">{profile.name}</span>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {profile.role}
+              </span>
             </div>
           )}
         </header>

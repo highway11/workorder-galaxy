@@ -35,7 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (isMounted) {
+                setSession(session);
                 setUser(session?.user ?? null);
+                
+                if (session?.user) {
+                    console.log("AuthContext: User authenticated, fetching profile...");
+                    await fetchUserProfile(session.user.id);
+                }
                 console.log("AuthContext: Session check complete. User:", session?.user ?? null);
             }
         } catch (catchError) {
@@ -53,13 +59,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        async (_event, session) => {
             console.log("AuthContext: Auth state changed. Event:", _event, "Session:", session);
             if (isMounted) {
+                setSession(session);
                 setUser(session?.user ?? null);
-                // Optional: You might briefly set loading true/false here if needed,
-                // but the initial load is the main concern.
-                // setLoading(false); // Probably not needed here unless event causes loading state
+                
+                // If user is logged in, fetch their profile
+                if (session?.user && _event === 'SIGNED_IN') {
+                    console.log("AuthContext: User signed in, fetching profile...");
+                    setTimeout(() => {
+                        fetchUserProfile(session.user.id);
+                    }, 0);
+                }
             }
         }
     );
@@ -72,10 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log("AuthContext: Unsubscribed from auth state changes.");
         }
     };
-}, []); // Empty dependency array ensures this runs only once 
+  }, []); // Empty dependency array ensures this runs only once 
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("AuthContext: Fetching profile for user ID:", userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -87,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
+      console.log("AuthContext: Profile fetched successfully:", data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
