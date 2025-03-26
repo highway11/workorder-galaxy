@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -90,12 +91,12 @@ const WorkOrderDetail = () => {
     mutationFn: async () => {
       if (!id) throw new Error("Work Order ID is required");
       
-      console.log("Closing work order with status: completed");
+      console.log("Closing work order with status: closed");
       
       const { error } = await supabase
         .from('workorders')
         .update({
-          status: 'completed', // Change from 'closed' to 'completed' which is allowed by the constraint
+          status: 'closed', // Change from 'completed' to 'closed'
           closed_on: closeDate.toISOString()
         })
         .eq('id', id);

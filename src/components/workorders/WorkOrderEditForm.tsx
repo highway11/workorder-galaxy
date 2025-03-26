@@ -49,7 +49,7 @@ const formSchema = z.object({
   group_id: z.string({
     required_error: "Please select a group",
   }),
-  status: z.enum(['open', 'in-progress', 'completed']),
+  status: z.enum(['open', 'in-progress', 'completed', 'closed']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -133,11 +133,11 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
     },
   });
 
-  const getValidStatus = (status: string): 'open' | 'in-progress' | 'completed' => {
-    if (status === 'open' || status === 'in-progress' || status === 'completed') {
-      return status as 'open' | 'in-progress' | 'completed';
+  const getValidStatus = (status: string): 'open' | 'in-progress' | 'completed' | 'closed' => {
+    if (status === 'open' || status === 'in-progress' || status === 'completed' || status === 'closed') {
+      return status as 'open' | 'in-progress' | 'completed' | 'closed';
     }
-    return 'completed';
+    return 'open';
   };
 
   const form = useForm<FormValues>({
@@ -184,10 +184,10 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
           gl_number: values.gl_number || null,
           group_id: values.group_id,
           status: values.status,
-          ...(values.status === 'completed' && workOrder.status !== 'completed'
+          ...(values.status === 'closed' && workOrder.status !== 'closed'
               ? { closed_on: new Date().toISOString() }
               : {}),
-          ...(values.status !== 'completed' && workOrder.status === 'completed'
+          ...(values.status !== 'closed' && workOrder.status === 'closed'
               ? { closed_on: null }
               : {})
         })
@@ -298,6 +298,7 @@ const WorkOrderEditForm = ({ workOrder, onSuccess }: WorkOrderEditFormProps) => 
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
