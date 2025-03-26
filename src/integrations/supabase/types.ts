@@ -161,6 +161,7 @@ export type Database = {
       }
       workorders: {
         Row: {
+          closed_on: string | null
           complete_by: string
           created_at: string
           created_by: string
@@ -173,8 +174,10 @@ export type Database = {
           location_id: string
           requested_by: string
           status: string
+          wo_number: string | null
         }
         Insert: {
+          closed_on?: string | null
           complete_by: string
           created_at?: string
           created_by: string
@@ -187,8 +190,10 @@ export type Database = {
           location_id: string
           requested_by: string
           status?: string
+          wo_number?: string | null
         }
         Update: {
+          closed_on?: string | null
           complete_by?: string
           created_at?: string
           created_by?: string
@@ -201,6 +206,7 @@ export type Database = {
           location_id?: string
           requested_by?: string
           status?: string
+          wo_number?: string | null
         }
         Relationships: [
           {
