@@ -177,6 +177,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workorder-details', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['workorder-totals', workOrderId] });
       toast({
         title: "Success!",
         description: `${detailType} has been added to the work order.`,

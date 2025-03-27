@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, invalidateWorkOrderQueries } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import WorkOrderEditForm from "./WorkOrderEditForm";
@@ -87,7 +87,6 @@ const WorkOrderDetail = () => {
         throw error;
       }
       
-      // Only cast to WorkOrder if we have valid data
       if (data) {
         return data as WorkOrder;
       }
@@ -97,7 +96,7 @@ const WorkOrderDetail = () => {
     enabled: !!id,
   });
 
-  const { data: workOrderTotals } = useQuery({
+  const { data: workOrderTotals, isLoading: isTotalsLoading } = useQuery({
     queryKey: ['workorder-totals', id],
     queryFn: async () => {
       if (!id) throw new Error("Work Order ID is required");
@@ -114,7 +113,6 @@ const WorkOrderDetail = () => {
         throw error;
       }
       
-      // Calculate totals
       const details = data as WorkOrderDetail[];
       let totalHours = 0;
       let totalParts = 0;
@@ -135,6 +133,7 @@ const WorkOrderDetail = () => {
       };
     },
     enabled: !!id,
+    staleTime: 0,
   });
 
   const closeWorkOrderMutation = useMutation({
@@ -146,7 +145,7 @@ const WorkOrderDetail = () => {
       const { error } = await supabase
         .from('workorders')
         .update({
-          status: 'closed', // Change from 'completed' to 'closed'
+          status: 'closed',
           closed_on: closeDate.toISOString()
         })
         .eq('id', id);
@@ -157,7 +156,7 @@ const WorkOrderDetail = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workorder', id] });
+      invalidateWorkOrderQueries(queryClient, id || '');
       setIsCloseDialogOpen(false);
       toast({
         title: "Work Order Closed",

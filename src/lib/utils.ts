@@ -41,3 +41,12 @@ export function formatCurrency(value: number | null): string {
     currency: "USD",
   }).format(value);
 }
+
+/**
+ * Helper function to invalidate related queries for a workorder
+ */
+export function invalidateWorkOrderQueries(queryClient: any, workOrderId: string) {
+  queryClient.invalidateQueries({ queryKey: ['workorder-details', workOrderId] });
+  queryClient.invalidateQueries({ queryKey: ['workorder-totals', workOrderId] });
+  queryClient.invalidateQueries({ queryKey: ['workorder', workOrderId] });
+}
