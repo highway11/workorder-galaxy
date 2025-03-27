@@ -31,6 +31,7 @@ interface WorkOrderDetail {
   id: string;
   workorder_id: string;
   created_by: string;
+  created_at: string;
   detail_type: string;
   comment: string | null;
   hours: number | null;
