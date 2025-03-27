@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkOrderDetail } from "./WorkOrderDetailsList";
 import WorkOrderDetailForm from "./WorkOrderDetailForm";
 
@@ -18,11 +18,21 @@ const EditWorkOrderDetailDialog = ({
 }: EditWorkOrderDetailDialogProps) => {
   if (!detail) return null;
 
+  // Use a controlled pattern for the dialog
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">Edit {detail.detail_type}</DialogTitle>
+          <DialogDescription>
+            Make changes to the {detail.detail_type.toLowerCase()} details below.
+          </DialogDescription>
         </DialogHeader>
         <WorkOrderDetailForm 
           workOrderId={workOrderId} 
