@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -166,17 +167,22 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           </>
         );
       case 'File':
-        if (detail.file_name && detail.file_path) {
+        if (detail.file_path) {
           const publicUrl = getSupabasePublicUrl('workorders', detail.file_path);
           if (!publicUrl) {
             return 'File URL not available';
           }
           
+          // Use the display text - comment if available, otherwise file_name
+          const displayText = detail.comment && detail.comment.trim() !== '' 
+            ? detail.comment 
+            : detail.file_name || 'Unnamed file';
+          
           if (isImageFile(detail.file_path)) {
             return (
               <div>
                 <div className="flex items-center space-x-2 mb-1">
-                  <Button variant="link" className="p-0 h-auto" onClick={() => handleOpenGallery([publicUrl])}>{detail.file_name}</Button>
+                  <Button variant="link" className="p-0 h-auto" onClick={() => handleOpenGallery([publicUrl])}>{displayText}</Button>
                 </div>
                 <div 
                   className="w-16 h-16 rounded overflow-hidden bg-gray-100 cursor-pointer border border-gray-200 transition-all hover:border-gray-400"
@@ -184,19 +190,19 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
                 >
                   <img 
                     src={publicUrl} 
-                    alt={detail.file_name}
+                    alt={displayText}
                     className="w-full h-full object-cover"
                   />
                 </div>
               </div>
             );
           } else if (isPdfFile(detail.file_path)) {
-            return <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{detail.file_name}</a>;
+            return <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{displayText}</a>;
           } else {
             return (
               <>
                 <FileIcon className="mr-2 h-4 w-4" />
-                <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{detail.file_name}</a>
+                <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{displayText}</a>
               </>
             );
           }
