@@ -1,30 +1,22 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const createStorageBucket = async () => {
+export const initializeStorage = async () => {
   // Check if the bucket already exists
   const { data: buckets } = await supabase.storage.listBuckets();
   
   if (!buckets?.find(bucket => bucket.name === 'workorders')) {
-    // Create the bucket if it doesn't exist
-    const { error } = await supabase.storage.createBucket('workorders', {
-      public: false, // Set to public: true if you want files to be publicly accessible
-    });
-    
-    if (error) {
-      console.error('Error creating storage bucket:', error);
-      return false;
-    }
-    
-    return true;
+    console.error('Storage bucket "workorders" not found. Please create it in the Supabase dashboard.');
+    return false;
   }
   
+  console.log('Storage bucket "workorders" is ready to use');
   return true;
 };
 
 // Initialize storage when imported
-createStorageBucket().then((created) => {
-  if (created) {
-    console.log('Storage bucket created or already exists');
+initializeStorage().then((initialized) => {
+  if (initialized) {
+    console.log('Storage bucket initialized successfully');
   }
 });

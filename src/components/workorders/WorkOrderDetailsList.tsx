@@ -71,14 +71,18 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
     
     try {
       setLoadingFile(fileDetail.id);
+      console.log("Downloading file:", fileDetail.file_path, "from bucket: workorders");
       
       const { data, error } = await supabase.storage
         .from("workorders")
         .download(fileDetail.file_path);
         
       if (error) {
+        console.error("Download error:", error);
         throw error;
       }
+      
+      console.log("File downloaded successfully");
       
       // Create a download link
       const url = URL.createObjectURL(data);

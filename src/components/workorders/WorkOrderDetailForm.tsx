@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -35,7 +34,6 @@ interface WorkOrderDetailFormProps {
   onClose: () => void;
 }
 
-// Create schemas for each form type
 const commentSchema = z.object({
   comment: z.string().min(1, { message: "Comment is required" }),
   date: z.date({ required_error: "Date is required" }),
@@ -67,13 +65,10 @@ const partsSchema = z.object({
   }),
 });
 
-// Update the fileSchema to NOT use z.instanceof(File) which causes TypeScript issues
 const fileSchema = z.object({
   comment: z.string().optional(),
-  // Remove the file field from schema validation - we'll handle it separately
 });
 
-// Function to get the appropriate schema based on detail type
 const getSchemaForType = (type: DetailType) => {
   switch (type) {
     case "Comment":
@@ -94,11 +89,9 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  
-  // Get the appropriate schema
+
   const formSchema = getSchemaForType(detailType);
-  
-  // Set up form
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -121,27 +114,32 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
 
       let fileData = null;
       
-      // Handle file upload if this is a file type
       if (detailType === "File" && file) {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${workOrderId}/${Math.random().toString(36).substring(2)}${fileExt ? `.${fileExt}` : ''}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('workorders')
-          .upload(filePath, file);
+        try {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `${workOrderId}/${Math.random().toString(36).substring(2)}.${fileExt || 'file'}`;
           
-        if (uploadError) {
-          console.error("Error uploading file:", uploadError);
-          throw new Error(`Error uploading file: ${uploadError.message}`);
+          console.log("Uploading file to path:", filePath);
+          const { data, error: uploadError } = await supabase.storage
+            .from('workorders')
+            .upload(filePath, file);
+            
+          if (uploadError) {
+            console.error("Error uploading file:", uploadError);
+            throw new Error(`Error uploading file: ${uploadError.message}`);
+          }
+          
+          console.log("File uploaded successfully:", data);
+          fileData = {
+            file_name: file.name,
+            file_path: filePath
+          };
+        } catch (uploadError) {
+          console.error("File upload exception:", uploadError);
+          throw new Error(`Error uploading file: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
         }
-        
-        fileData = {
-          file_name: file.name,
-          file_path: filePath
-        };
       }
       
-      // Prepare data object based on detail type
       const detailData: any = {
         workorder_id: workOrderId,
         created_by: user.id,
@@ -149,7 +147,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
         comment: values.comment || null,
       };
       
-      // Add type-specific fields
       if (detailType === "Hours") {
         detailData.hours = parseFloat(values.hours);
       } else if (detailType === "Parts") {
@@ -157,14 +154,14 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
         detailData.gst = parseFloat(values.gst);
         detailData.pst = parseFloat(values.pst);
         detailData.amount = parseFloat(values.amount);
-        // Store vendor name in comment if not already there
         detailData.comment = `Vendor: ${values.vendor}${values.comment ? ` - ${values.comment}` : ''}`;
       } else if (detailType === "File" && fileData) {
         detailData.file_name = fileData.file_name;
         detailData.file_path = fileData.file_path;
       }
       
-      // Insert record into database
+      console.log("Inserting workorder detail:", detailData);
+      
       const { data, error } = await supabase
         .from('workorder_details')
         .insert(detailData)
@@ -212,7 +209,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      // Remove the problematic setValue call - we'll use the separate 'file' state
     }
   };
 
@@ -222,7 +218,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Date field - shown for all types except File */}
           {detailType !== "File" && (
             <FormField
               control={form.control}
@@ -267,7 +262,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
             />
           )}
 
-          {/* Hours field - only for Hours type */}
           {detailType === "Hours" && (
             <FormField
               control={form.control}
@@ -284,7 +278,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
             />
           )}
 
-          {/* Parts fields - only for Parts type */}
           {detailType === "Parts" && (
             <>
               <FormField
@@ -361,7 +354,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
             </>
           )}
 
-          {/* File upload - only for File type */}
           {detailType === "File" && (
             <div className="space-y-4">
               <div className="flex items-center justify-center w-full">
@@ -389,7 +381,6 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
             </div>
           )}
 
-          {/* Comment/Description field - for all types */}
           <FormField
             control={form.control}
             name="comment"
