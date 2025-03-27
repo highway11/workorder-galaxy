@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,8 +26,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, getSupabasePublicUrl, isImageFile, isPdfFile, invalidateWorkOrderQueries } from "@/lib/utils";
 import ImageGallery from "../gallery/ImageGallery";
+import EditWorkOrderDetailDialog from "./EditWorkOrderDetailDialog";
 
-interface WorkOrderDetail {
+export interface WorkOrderDetail {
   id: string;
   workorder_id: string;
   created_by: string;
@@ -55,6 +55,8 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
   const [open, setOpen] = useState(false);
   const [selectedFilePaths, setSelectedFilePaths] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [detailToEdit, setDetailToEdit] = useState<WorkOrderDetail | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: details, isLoading, error } = useQuery({
     queryKey: ['workorder-details', workOrderId],
@@ -73,7 +75,6 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
         throw error;
       }
 
-      // Transform the data to include the user_name from the profiles join
       return data.map(detail => ({
         ...detail,
         user_name: detail.profiles?.name || 'Unknown User'
@@ -94,7 +95,6 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
       }
     },
     onSuccess: () => {
-      // Use the helper function to invalidate all related queries
       invalidateWorkOrderQueries(queryClient, workOrderId);
       
       toast({
@@ -114,6 +114,16 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
 
   const handleDeleteDetail = (id: string) => {
     deleteDetailMutation.mutate(id);
+  };
+
+  const handleEditDetail = (detail: WorkOrderDetail) => {
+    setDetailToEdit(detail);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setDetailToEdit(null);
   };
 
   const handleOpenGallery = (filePaths: string[], initialIndex: number = 0) => {
@@ -213,6 +223,13 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
         />
       )}
       
+      <EditWorkOrderDetailDialog
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        detail={detailToEdit}
+        workOrderId={workOrderId}
+      />
+      
       <Table>
         <TableCaption>Work Order Details</TableCaption>
         <TableHeader>
@@ -249,7 +266,9 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>
+                    <DropdownMenuItem
+                      onClick={() => handleEditDetail(detail)}
+                    >
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,11 +27,14 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { DetailType } from "./WorkOrderDetailButtons";
+import { WorkOrderDetail } from "./WorkOrderDetailsList";
 
 interface WorkOrderDetailFormProps {
   workOrderId: string;
   detailType: DetailType;
   onClose: () => void;
+  editMode?: boolean;
+  detailToEdit?: WorkOrderDetail | null;
 }
 
 const commentSchema = z.object({
@@ -84,7 +87,13 @@ const getSchemaForType = (type: DetailType) => {
   }
 };
 
-const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDetailFormProps) => {
+const WorkOrderDetailForm = ({ 
+  workOrderId, 
+  detailType, 
+  onClose, 
+  editMode = false,
+  detailToEdit = null 
+}: WorkOrderDetailFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -92,9 +101,36 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
 
   const formSchema = getSchemaForType(detailType);
 
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  // Initialize default values based on whether we're in edit mode
+  const getDefaultValues = () => {
+    if (editMode && detailToEdit) {
+      const dateValue = detailToEdit.created_at ? new Date(detailToEdit.created_at) : new Date();
+      
+      // Extract vendor from comment if it's a Parts type
+      let vendor = "";
+      let comment = detailToEdit.comment || "";
+      
+      if (detailType === "Parts" && comment) {
+        const vendorMatch = comment.match(/Vendor: (.*?)($| - )/);
+        if (vendorMatch && vendorMatch[1]) {
+          vendor = vendorMatch[1];
+          comment = comment.replace(`Vendor: ${vendor} - `, '').replace(`Vendor: ${vendor}`, '');
+        }
+      }
+      
+      return {
+        comment: detailType === "Parts" ? comment : detailToEdit.comment || "",
+        date: dateValue,
+        hours: detailToEdit.hours?.toString() || "",
+        vendor: vendor,
+        subtotal: detailToEdit.subtotal?.toString() || "",
+        gst: detailToEdit.gst?.toString() || "",
+        pst: detailToEdit.pst?.toString() || "",
+        amount: detailToEdit.amount?.toString() || "",
+      };
+    }
+    
+    return {
       comment: "",
       date: new Date(),
       hours: "",
@@ -103,10 +139,25 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
       gst: "",
       pst: "",
       amount: "",
-    },
+    };
+  };
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: getDefaultValues(),
   });
 
-  const addDetailMutation = useMutation({
+  // Update form values when in edit mode and detailToEdit changes
+  useEffect(() => {
+    if (editMode && detailToEdit) {
+      const defaultValues = getDefaultValues();
+      Object.keys(defaultValues).forEach((key) => {
+        form.setValue(key as any, defaultValues[key as keyof typeof defaultValues]);
+      });
+    }
+  }, [editMode, detailToEdit, form]);
+
+  const addOrUpdateDetailMutation = useMutation({
     mutationFn: async (values: any) => {
       if (!user) {
         throw new Error("You must be logged in to add details");
@@ -142,10 +193,17 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
       
       const detailData: any = {
         workorder_id: workOrderId,
-        created_by: user.id,
         detail_type: detailType,
         comment: values.comment || null,
       };
+      
+      if (editMode && detailToEdit) {
+        // If editing, only update fields that can be edited
+        // Don't update created_by, workorder_id, etc.
+      } else {
+        // If creating, set the created_by field
+        detailData.created_by = user.id;
+      }
       
       if (detailType === "Hours") {
         detailData.hours = parseFloat(values.hours);
@@ -160,27 +218,43 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
         detailData.file_path = fileData.file_path;
       }
       
-      console.log("Inserting workorder detail:", detailData);
+      console.log(editMode ? "Updating workorder detail:" : "Inserting workorder detail:", detailData);
       
-      const { data, error } = await supabase
-        .from('workorder_details')
-        .insert(detailData)
-        .select('*')
-        .single();
+      if (editMode && detailToEdit) {
+        const { data, error } = await supabase
+          .from('workorder_details')
+          .update(detailData)
+          .eq('id', detailToEdit.id)
+          .select('*')
+          .single();
+          
+        if (error) {
+          console.error("Error updating work order detail:", error);
+          throw new Error(`Error updating detail: ${error.message}`);
+        }
         
-      if (error) {
-        console.error("Error adding work order detail:", error);
-        throw new Error(`Error adding detail: ${error.message}`);
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from('workorder_details')
+          .insert(detailData)
+          .select('*')
+          .single();
+          
+        if (error) {
+          console.error("Error adding work order detail:", error);
+          throw new Error(`Error adding detail: ${error.message}`);
+        }
+        
+        return data;
       }
-      
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workorder-details', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['workorder-totals', workOrderId] });
       toast({
         title: "Success!",
-        description: `${detailType} has been added to the work order.`,
+        description: `${detailType} has been ${editMode ? 'updated' : 'added'} to the work order.`,
       });
       onClose();
     },
@@ -195,7 +269,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
   });
 
   const onSubmit = (values: any) => {
-    if (detailType === "File" && !file) {
+    if (detailType === "File" && !file && !editMode) {
       toast({
         title: "Error",
         description: "Please select a file to upload",
@@ -204,7 +278,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
       return;
     }
     
-    addDetailMutation.mutate(values);
+    addOrUpdateDetailMutation.mutate(values);
   };
 
   const calculateTaxesAndTotal = () => {
@@ -237,7 +311,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
 
   return (
     <div className="p-4 bg-white rounded-md border">
-      <h3 className="font-medium text-lg mb-4">Add {detailType}</h3>
+      <h3 className="font-medium text-lg mb-4">{editMode ? 'Edit' : 'Add'} {detailType}</h3>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -257,6 +331,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={editMode} // Disable date change in edit mode
                         >
                           {field.value ? (
                             format(field.value, "PPP")
@@ -439,15 +514,15 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
             </Button>
             <Button 
               type="submit" 
-              disabled={addDetailMutation.isPending}
+              disabled={addOrUpdateDetailMutation.isPending}
             >
-              {addDetailMutation.isPending ? (
+              {addOrUpdateDetailMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  {editMode ? 'Updating...' : 'Saving...'}
                 </>
               ) : (
-                "Save"
+                editMode ? 'Update' : 'Save'
               )}
             </Button>
           </div>
