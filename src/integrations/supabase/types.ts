@@ -107,39 +107,48 @@ export type Database = {
       }
       workorder_details: {
         Row: {
+          amount: number | null
           comment: string | null
-          cost: number | null
           created_at: string
           created_by: string
           detail_type: string
           file_name: string | null
           file_path: string | null
+          gst: number | null
           hours: number | null
           id: string
+          pst: number | null
+          subtotal: number | null
           workorder_id: string
         }
         Insert: {
+          amount?: number | null
           comment?: string | null
-          cost?: number | null
           created_at?: string
           created_by: string
           detail_type: string
           file_name?: string | null
           file_path?: string | null
+          gst?: number | null
           hours?: number | null
           id?: string
+          pst?: number | null
+          subtotal?: number | null
           workorder_id: string
         }
         Update: {
+          amount?: number | null
           comment?: string | null
-          cost?: number | null
           created_at?: string
           created_by?: string
           detail_type?: string
           file_name?: string | null
           file_path?: string | null
+          gst?: number | null
           hours?: number | null
           id?: string
+          pst?: number | null
+          subtotal?: number | null
           workorder_id?: string
         }
         Relationships: [

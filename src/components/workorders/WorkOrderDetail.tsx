@@ -1,8 +1,9 @@
 
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon } from "lucide-react";
+import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon, PlusCircle } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import WorkOrderEditForm from "./WorkOrderEditForm";
+import WorkOrderDetailButtons, { DetailType } from "./WorkOrderDetailButtons";
+import WorkOrderDetailForm from "./WorkOrderDetailForm";
+import WorkOrderDetailsList from "./WorkOrderDetailsList";
 
 type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
 
@@ -46,6 +49,7 @@ const WorkOrderDetail = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [closeDate, setCloseDate] = useState<Date>(new Date());
+  const [activeDetailType, setActiveDetailType] = useState<DetailType | null>(null);
 
   const { data: workOrder, isLoading, error } = useQuery({
     queryKey: ['workorder', id],
@@ -126,6 +130,14 @@ const WorkOrderDetail = () => {
 
   const handleCloseWorkOrder = () => {
     closeWorkOrderMutation.mutate();
+  };
+
+  const handleAddDetail = (type: DetailType) => {
+    setActiveDetailType(type);
+  };
+
+  const handleCloseDetailForm = () => {
+    setActiveDetailType(null);
   };
 
   const getStatusColor = (status: WorkOrderStatus) => {
@@ -343,6 +355,32 @@ const WorkOrderDetail = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Work Order Details Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-xl font-bold">Work Order Details</h2>
+            {workOrder.status !== 'closed' && (
+              <WorkOrderDetailButtons onAddDetail={handleAddDetail} />
+            )}
+          </div>
+          
+          {/* Detail Form */}
+          {activeDetailType && workOrder.status !== 'closed' && (
+            <Card>
+              <CardContent className="p-0">
+                <WorkOrderDetailForm 
+                  workOrderId={workOrder.id} 
+                  detailType={activeDetailType} 
+                  onClose={handleCloseDetailForm} 
+                />
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Details List */}
+          <WorkOrderDetailsList workOrderId={workOrder.id} />
+        </div>
       </div>
 
       {/* Edit Work Order Dialog */}
