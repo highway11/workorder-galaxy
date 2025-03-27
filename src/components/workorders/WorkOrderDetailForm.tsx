@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, FileIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, FileIcon, Loader2, Calculator } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,6 +207,28 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
     addDetailMutation.mutate(values);
   };
 
+  const calculateTaxesAndTotal = () => {
+    const subtotalValue = form.getValues("subtotal");
+    if (!subtotalValue || isNaN(Number(subtotalValue))) {
+      toast({
+        title: "Invalid subtotal",
+        description: "Please enter a valid subtotal amount first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const subtotal = Number(subtotalValue);
+    const gst = subtotal * 0.05;
+    const pst = subtotal * 0.07;
+    const total = subtotal + gst + pst;
+
+    // Update form values
+    form.setValue("gst", gst.toFixed(2));
+    form.setValue("pst", pst.toFixed(2));
+    form.setValue("amount", total.toFixed(2));
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -302,9 +324,20 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subtotal</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
-                      </FormControl>
+                      <div className="flex items-center space-x-2">
+                        <FormControl>
+                          <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={calculateTaxesAndTotal}
+                          title="Calculate taxes and total"
+                        >
+                          <Calculator className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
