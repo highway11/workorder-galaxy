@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -161,6 +162,7 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
 
       // Send notification to users in the group who are set to be notified
       try {
+        // Use the correct URL format for Supabase edge functions
         const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
           "send-workorder-notification", 
           {
