@@ -2,6 +2,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Using literal string types to ensure exact matches with database constraint
 export type DetailType = "Comment" | "Hours" | "Parts" | "File";
 
 interface WorkOrderDetailButtonsProps {
