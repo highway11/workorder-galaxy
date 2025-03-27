@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.3";
+import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 // Define CORS headers
 const corsHeaders = {
@@ -77,6 +78,111 @@ async function getWorkOrderDetails(supabase: any, workOrderId: string) {
   return data;
 }
 
+// Function to send email notifications
+async function sendEmailNotification(recipient: { email: string, name: string }, workOrder: any) {
+  try {
+    // Configure SMTP client with your provider's settings
+    const client = new SMTPClient({
+      connection: {
+        hostname: Deno.env.get("SMTP_HOSTNAME") || "",
+        port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+        tls: true,
+        auth: {
+          username: Deno.env.get("SMTP_USERNAME") || "",
+          password: Deno.env.get("SMTP_PASSWORD") || "",
+        },
+      }
+    });
+
+    // Format dates for the email
+    const workOrderDate = new Date(workOrder.date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    
+    const completeByDate = new Date(workOrder.complete_by).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Create email content with workorder details
+    const emailContent = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            h1 { color: #2563eb; }
+            .details { background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            .detail-row { display: flex; margin-bottom: 10px; }
+            .detail-label { font-weight: bold; width: 150px; }
+            .footer { margin-top: 30px; font-size: 12px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>New Work Order Notification</h1>
+            <p>Hello ${recipient.name},</p>
+            <p>A new work order has been assigned to your department:</p>
+            
+            <div class="details">
+              <div class="detail-row">
+                <div class="detail-label">Work Order #:</div>
+                <div>${workOrder.wo_number}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Item:</div>
+                <div>${workOrder.item}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Description:</div>
+                <div>${workOrder.description || 'No description provided'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Location:</div>
+                <div>${workOrder.locations ? workOrder.locations.name : 'Unknown'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Requested By:</div>
+                <div>${workOrder.requested_by}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Date Created:</div>
+                <div>${workOrderDate}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Complete By:</div>
+                <div>${completeByDate}</div>
+              </div>
+            </div>
+            
+            <p>Please review this work order at your earliest convenience.</p>
+            
+            <div class="footer">
+              <p>This is an automated notification from the Work Order Management System.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Send the email
+    await client.send({
+      from: Deno.env.get("SMTP_FROM_EMAIL") || "workorders@example.com",
+      to: recipient.email,
+      subject: `New Work Order #${workOrder.wo_number}: ${workOrder.item}`,
+      content: emailContent,
+      html: emailContent,
+    });
+
+    // Close the connection
+    await client.close();
+    
+    return { success: true, email: recipient.email };
+  } catch (error) {
+    console.error(`Failed to send email to ${recipient.email}:`, error);
+    return { success: false, email: recipient.email, error: error.message };
+  }
+}
+
 // Main server function
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -132,21 +238,23 @@ serve(async (req) => {
       );
     }
     
-    // Set up notification process
-    // This would be replaced with actual email sending logic
-    // using a service like Resend, SendGrid, or similar
-    console.log(`Would send notifications to ${usersToNotify.length} users for work order ${workOrder.wo_number}`);
-    console.log('Users to notify:', usersToNotify);
+    console.log(`Sending notifications to ${usersToNotify.length} users for work order ${workOrder.wo_number}`);
     console.log('Work order details:', workOrder);
     
-    // For now, just log the notification details
-    // In production, you would integrate with an email service here
+    // Send email notifications to each user
+    const emailResults = await Promise.all(
+      usersToNotify.map(user => sendEmailNotification(user, workOrder))
+    );
+    
+    // Count successful and failed emails
+    const successful = emailResults.filter(result => result.success).length;
+    const failed = emailResults.filter(result => !result.success).length;
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Notification would be sent to ${usersToNotify.length} users`,
-        notifiedUsers: usersToNotify.map((u: any) => u.email),
+        message: `Notifications sent to ${successful} users (${failed} failed)`,
+        details: emailResults,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

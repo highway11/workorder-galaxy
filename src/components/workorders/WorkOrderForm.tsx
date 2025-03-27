@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
@@ -162,7 +163,7 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
 
       // Send notification to users in the group who are set to be notified
       try {
-        // Use the correct URL format for Supabase edge functions
+        // Use the correct invocation method for Supabase edge functions
         const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
           "send-workorder-notification", 
           {
@@ -174,18 +175,45 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
 
         if (notifyError) {
           console.error("Failed to send notifications:", notifyError);
+          toast({
+            title: "Note",
+            description: "Work order created but notifications could not be sent",
+            variant: "default",
+          });
         } else {
           console.log("Notification response:", notifyData);
+          if (notifyData.message === "No users to notify") {
+            toast({
+              title: "Work Order Created",
+              description: "No users configured to receive notifications for this department",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Work Order Created",
+              description: notifyData.message || "Notifications sent successfully",
+              variant: "default",
+            });
+          }
         }
       } catch (notifyError) {
         // Log notification error but don't fail the work order creation
         console.error("Error sending notifications:", notifyError);
+        toast({
+          title: "Note",
+          description: "Work order created but there was an error sending notifications",
+          variant: "default",
+        });
       }
 
       onSuccess();
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("Failed to create work order: " + (error instanceof Error ? error.message : "Unknown error"));
+      toast({
+        title: "Error",
+        description: "Failed to create work order: " + (error instanceof Error ? error.message : "Unknown error"),
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
