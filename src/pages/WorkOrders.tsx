@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import WorkOrderForm from '@/components/workorders/WorkOrderForm';
 
 type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
@@ -57,6 +58,7 @@ const WorkOrders = () => {
   const [workOrderToDelete, setWorkOrderToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   useEffect(() => {
     document.title = "Work Orders | WorkOrder App";
@@ -65,6 +67,7 @@ const WorkOrders = () => {
   const { data: workOrders, isLoading, error } = useQuery({
     queryKey: ['workorders'],
     queryFn: async () => {
+      console.log("Fetching work orders");
       const { data, error } = await supabase
         .from('workorders')
         .select(`
@@ -87,6 +90,7 @@ const WorkOrders = () => {
         throw new Error(error.message);
       }
       
+      console.log("Fetched work orders:", data);
       return (data || []) as WorkOrder[];
     }
   });
@@ -94,6 +98,10 @@ const WorkOrders = () => {
   const deleteWorkOrderMutation = useMutation({
     mutationFn: async (workOrderId: string) => {
       console.log("Deleting work order with ID:", workOrderId);
+      
+      if (!user) {
+        throw new Error("You must be logged in to delete work orders");
+      }
       
       // First delete related work order details
       const { error: detailsError } = await supabase
@@ -103,23 +111,24 @@ const WorkOrders = () => {
       
       if (detailsError) {
         console.error("Error deleting work order details:", detailsError);
-        throw new Error(detailsError.message);
+        throw new Error(`Error deleting details: ${detailsError.message}`);
       }
       
       console.log("Successfully deleted related details, now deleting work order");
       
       // Then delete the work order
-      const { error: workOrderError } = await supabase
+      const { data: deletedWorkOrder, error: workOrderError } = await supabase
         .from('workorders')
         .delete()
-        .eq('id', workOrderId);
+        .eq('id', workOrderId)
+        .select();
       
       if (workOrderError) {
         console.error("Error deleting work order:", workOrderError);
-        throw new Error(workOrderError.message);
+        throw new Error(`Error deleting work order: ${workOrderError.message}`);
       }
       
-      console.log("Successfully deleted work order");
+      console.log("Successfully deleted work order, returned data:", deletedWorkOrder);
       return workOrderId;
     },
     onSuccess: (deletedId) => {
