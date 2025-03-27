@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash, Users, Check, X, Bell } from 'lucide-react';
@@ -6,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -37,7 +37,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-// Define types for our data
 type Group = {
   id: string;
   name: string;
@@ -52,7 +51,6 @@ type User = {
   notify: boolean;
 };
 
-// Group schema for validation
 const groupSchema = z.object({
   name: z.string().min(2, { message: "Group name must be at least 2 characters" })
 });
@@ -67,7 +65,6 @@ const GroupsManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Form setup
   const form = useForm<z.infer<typeof groupSchema>>({
     resolver: zodResolver(groupSchema),
     defaultValues: {
@@ -75,7 +72,6 @@ const GroupsManager = () => {
     },
   });
 
-  // Reset form when we change which group we're editing
   useEffect(() => {
     if (editingGroup) {
       form.reset({ name: editingGroup.name });
@@ -84,7 +80,6 @@ const GroupsManager = () => {
     }
   }, [editingGroup, form]);
 
-  // Query to fetch groups
   const { data: groups, isLoading, error } = useQuery({
     queryKey: ['groups'],
     queryFn: async (): Promise<Group[]> => {
@@ -98,11 +93,9 @@ const GroupsManager = () => {
     }
   });
 
-  // Query to fetch users when managing group members
   const { data: users, isLoading: isLoadingUsers } = useQuery({
     queryKey: ['users', manageUsersFor?.id],
     queryFn: async (): Promise<User[]> => {
-      // Fetch all users
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name, email')
@@ -110,7 +103,6 @@ const GroupsManager = () => {
       
       if (profilesError) throw new Error(profilesError.message);
       
-      // If we have a group selected, fetch users in that group
       if (manageUsersFor) {
         const { data: userGroups, error: userGroupsError } = await supabase
           .from('user_groups')
@@ -119,13 +111,11 @@ const GroupsManager = () => {
         
         if (userGroupsError) throw new Error(userGroupsError.message);
         
-        // Create a map of user IDs to their group membership status
         const userGroupMap = new Map();
         userGroups?.forEach(ug => {
           userGroupMap.set(ug.user_id, { isInGroup: true, notify: ug.notify });
         });
         
-        // Map the users with their group membership status
         return (profiles || []).map(user => ({
           id: user.id,
           name: user.name,
@@ -135,7 +125,6 @@ const GroupsManager = () => {
         }));
       }
       
-      // If no group is selected, just return the users without group status
       return (profiles || []).map(user => ({
         id: user.id,
         name: user.name,
@@ -147,7 +136,6 @@ const GroupsManager = () => {
     enabled: !!manageUsersFor
   });
 
-  // Initialize selected users when opening the dialog
   useEffect(() => {
     if (users && manageUsersFor) {
       const initialSelectedUsers: Record<string, boolean> = {};
@@ -163,7 +151,6 @@ const GroupsManager = () => {
     }
   }, [users, manageUsersFor]);
 
-  // Mutation to add a new group
   const addGroupMutation = useMutation({
     mutationFn: async (values: z.infer<typeof groupSchema>) => {
       const { data, error } = await supabase
@@ -192,7 +179,6 @@ const GroupsManager = () => {
     }
   });
 
-  // Mutation to update a group
   const updateGroupMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string, values: z.infer<typeof groupSchema> }) => {
       const { data, error } = await supabase
@@ -222,7 +208,6 @@ const GroupsManager = () => {
     }
   });
 
-  // Mutation to delete a group
   const deleteGroupMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -248,7 +233,6 @@ const GroupsManager = () => {
     }
   });
 
-  // Mutation to update group members
   const updateGroupMembersMutation = useMutation({
     mutationFn: async ({ groupId, selectedUsers, notifyUsers }: { 
       groupId: string;
@@ -257,7 +241,6 @@ const GroupsManager = () => {
     }) => {
       if (!users) return;
       
-      // Get current group members
       const { data: currentMembers, error: fetchError } = await supabase
         .from('user_groups')
         .select('id, user_id, notify')
@@ -265,7 +248,6 @@ const GroupsManager = () => {
       
       if (fetchError) throw new Error(fetchError.message);
       
-      // Create a map of current members
       const currentMemberMap = new Map();
       currentMembers?.forEach(member => {
         currentMemberMap.set(member.user_id, { 
@@ -274,7 +256,6 @@ const GroupsManager = () => {
         });
       });
       
-      // Users to add
       const usersToAdd = users
         .filter(user => selectedUsers[user.id] && !currentMemberMap.has(user.id))
         .map(user => ({
@@ -283,12 +264,10 @@ const GroupsManager = () => {
           notify: notifyUsers[user.id] || false
         }));
       
-      // Users to remove
       const usersToRemove = Array.from(currentMemberMap.keys())
         .filter(userId => !selectedUsers[userId])
         .map(userId => currentMemberMap.get(userId).id);
       
-      // Users to update (notification settings changed)
       const usersToUpdate = users
         .filter(user => {
           const currentMember = currentMemberMap.get(user.id);
@@ -299,7 +278,6 @@ const GroupsManager = () => {
           notify: notifyUsers[user.id] || false
         }));
       
-      // Execute all operations
       const operations = [];
       
       if (usersToAdd.length > 0) {
@@ -331,7 +309,6 @@ const GroupsManager = () => {
       if (operations.length > 0) {
         const results = await Promise.all(operations);
         
-        // Check for errors
         const errors = results.filter(result => result.error).map(result => result.error);
         if (errors.length > 0) {
           throw new Error(errors[0]?.message || 'Failed to update group members');
@@ -358,7 +335,6 @@ const GroupsManager = () => {
     }
   });
 
-  // Handle form submission
   const onSubmit = (values: z.infer<typeof groupSchema>) => {
     setIsSubmitting(true);
     
@@ -371,14 +347,12 @@ const GroupsManager = () => {
     setIsSubmitting(false);
   };
 
-  // Cancel editing/adding
   const handleCancel = () => {
     setIsAddingGroup(false);
     setEditingGroup(null);
     form.reset();
   };
 
-  // Save group members
   const handleSaveGroupMembers = () => {
     if (manageUsersFor) {
       updateGroupMembersMutation.mutate({
@@ -389,17 +363,14 @@ const GroupsManager = () => {
     }
   };
 
-  // Handle user selection in the group members dialog
   const handleUserSelection = (userId: string, checked: boolean) => {
     setSelectedUsers(prev => ({ ...prev, [userId]: checked }));
     
-    // If user is unselected, also disable notifications
     if (!checked) {
       setNotifyUsers(prev => ({ ...prev, [userId]: false }));
     }
   };
 
-  // Handle notification toggle in the group members dialog
   const handleNotifyToggle = (userId: string, checked: boolean) => {
     setNotifyUsers(prev => ({ ...prev, [userId]: checked }));
   };
@@ -429,7 +400,6 @@ const GroupsManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add/Edit Form */}
         <Collapsible open={isAddingGroup || !!editingGroup} className="mb-4">
           <CollapsibleContent>
             <Card className="border-dashed">
@@ -479,7 +449,6 @@ const GroupsManager = () => {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Groups Table */}
         {isLoading ? (
           <div className="flex justify-center py-8">
             <p>Loading groups...</p>
@@ -542,7 +511,6 @@ const GroupsManager = () => {
           </div>
         )}
 
-        {/* Manage Group Members Dialog */}
         <Dialog 
           open={!!manageUsersFor} 
           onOpenChange={(open) => {
