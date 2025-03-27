@@ -67,9 +67,10 @@ const partsSchema = z.object({
   }),
 });
 
+// Update the fileSchema to NOT use z.instanceof(File) which causes TypeScript issues
 const fileSchema = z.object({
   comment: z.string().optional(),
-  file: z.instanceof(File, { message: "File is required" }),
+  // Remove the file field from schema validation - we'll handle it separately
 });
 
 // Function to get the appropriate schema based on detail type
@@ -211,7 +212,7 @@ const WorkOrderDetailForm = ({ workOrderId, detailType, onClose }: WorkOrderDeta
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      form.setValue('file', e.target.files[0]);
+      // Remove the problematic setValue call - we'll use the separate 'file' state
     }
   };
 
