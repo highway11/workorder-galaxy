@@ -18,7 +18,7 @@ const EditWorkOrderDetailDialog = ({
 }: EditWorkOrderDetailDialogProps) => {
   if (!detail) return null;
 
-  // Use a controlled pattern for the dialog
+  // Use a controlled pattern for the dialog and ensure proper cleanup
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();

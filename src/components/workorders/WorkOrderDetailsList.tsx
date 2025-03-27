@@ -117,13 +117,19 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
   };
 
   const handleEditDetail = (detail: WorkOrderDetail) => {
-    setDetailToEdit(detail);
-    setIsEditDialogOpen(true);
+    setDetailToEdit(null);
+    
+    setTimeout(() => {
+      setDetailToEdit(detail);
+      setIsEditDialogOpen(true);
+    }, 10);
   };
 
   const handleCloseEditDialog = () => {
     setIsEditDialogOpen(false);
-    setDetailToEdit(null);
+    setTimeout(() => {
+      setDetailToEdit(null);
+    }, 100);
   };
 
   const handleOpenGallery = (filePaths: string[], initialIndex: number = 0) => {
