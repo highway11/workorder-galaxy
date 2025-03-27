@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { FileIcon, Download, FileX, Loader2 } from "lucide-react";
+import { FileIcon, Download, FileX, Loader2, FilePdf, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { DetailType } from "./WorkOrderDetailButtons";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { isImageFile, isPdfFile, getSupabasePublicUrl } from "@/lib/utils";
 
 interface WorkOrderDetail {
   id: string;
@@ -37,6 +40,7 @@ interface WorkOrderDetailsListProps {
 const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
   const { toast } = useToast();
   const [loadingFile, setLoadingFile] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   const {
     data: details,
@@ -72,6 +76,16 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
     try {
       setLoadingFile(fileDetail.id);
       console.log("Downloading file:", fileDetail.file_path, "from bucket: workorders");
+      
+      // For PDFs, we can just open them in a new tab using the public URL
+      if (isPdfFile(fileDetail.file_name)) {
+        const publicUrl = getSupabasePublicUrl("workorders", fileDetail.file_path);
+        if (publicUrl) {
+          window.open(publicUrl, '_blank');
+          setLoadingFile(null);
+          return;
+        }
+      }
       
       const { data, error } = await supabase.storage
         .from("workorders")
@@ -112,6 +126,15 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
     }
   };
 
+  const handleOpenImage = (fileDetail: WorkOrderDetail) => {
+    if (!fileDetail.file_path || !isImageFile(fileDetail.file_name)) return;
+    
+    const imageUrl = getSupabasePublicUrl("workorders", fileDetail.file_path);
+    if (imageUrl) {
+      setSelectedImage(imageUrl);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -138,15 +161,14 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
     );
   }
 
-  // Group details by type
-  const detailsByType = details.reduce((groups, detail) => {
+  const detailsByType = details?.reduce((groups, detail) => {
     const type = detail.detail_type;
     if (!groups[type]) {
       groups[type] = [];
     }
     groups[type].push(detail);
     return groups;
-  }, {} as Record<DetailType, WorkOrderDetail[]>);
+  }, {} as Record<DetailType, WorkOrderDetail[]>) || {};
 
   const formatCurrency = (value: number | null) => {
     if (value === null) return "-";
@@ -224,24 +246,56 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
                     {type === "File" && (
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <FileIcon className="h-5 w-5 text-blue-500" />
-                          <span>{detail.file_name || "Unnamed file"}</span>
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-2"
-                            onClick={() => handleDownloadFile(detail)}
-                            disabled={loadingFile === detail.id || !detail.file_path}
-                          >
-                            {loadingFile === detail.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : detail.file_path ? (
-                              <Download className="h-4 w-4" />
-                            ) : (
-                              <FileX className="h-4 w-4" />
-                            )}
-                          </Button>
+                          {isImageFile(detail.file_name) ? (
+                            <div className="flex items-center">
+                              <div 
+                                className="cursor-pointer relative border rounded-md overflow-hidden h-16 w-16 flex items-center justify-center bg-gray-50"
+                                onClick={() => handleOpenImage(detail)}
+                              >
+                                {detail.file_path ? (
+                                  <img
+                                    src={getSupabasePublicUrl("workorders", detail.file_path)}
+                                    alt={detail.file_name || "File thumbnail"}
+                                    className="max-h-full max-w-full object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2' ry='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/%3E%3C/svg%3E";
+                                    }}
+                                  />
+                                ) : (
+                                  <Image className="h-8 w-8 text-gray-400" />
+                                )}
+                              </div>
+                            </div>
+                          ) : isPdfFile(detail.file_name) ? (
+                            <div
+                              className="cursor-pointer flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                              onClick={() => handleDownloadFile(detail)}
+                            >
+                              <FilePdf className="h-5 w-5" />
+                              <span className="underline">{detail.file_name || "Unnamed PDF"}</span>
+                            </div>
+                          ) : (
+                            <>
+                              <FileIcon className="h-5 w-5 text-blue-500" />
+                              <span>{detail.file_name || "Unnamed file"}</span>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => handleDownloadFile(detail)}
+                                disabled={loadingFile === detail.id || !detail.file_path}
+                              >
+                                {loadingFile === detail.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : detail.file_path ? (
+                                  <Download className="h-4 w-4" />
+                                ) : (
+                                  <FileX className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </div>
                         {detail.comment && <p className="text-gray-700">{detail.comment}</p>}
                       </div>
@@ -253,6 +307,32 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           </Card>
         );
       })}
+
+      {/* Image Preview Dialog */}
+      <Dialog 
+        open={!!selectedImage} 
+        onOpenChange={(open) => !open && setSelectedImage(null)}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0">
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10">
+            <span className="sr-only">Close</span>
+            <Button variant="ghost" size="icon">
+              ✕
+            </Button>
+          </DialogClose>
+          <ScrollArea className="max-h-[90vh]">
+            {selectedImage && (
+              <div className="p-6">
+                <img
+                  src={selectedImage}
+                  alt="Preview"
+                  className="w-full h-auto"
+                />
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
