@@ -1,9 +1,8 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon, PlusCircle } from "lucide-react";
+import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon, PlusCircle, CalculatorIcon } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import WorkOrderEditForm from "./WorkOrderEditForm";
@@ -39,6 +38,14 @@ type WorkOrder = {
   status: WorkOrderStatus;
   gl_number: string | null;
   closed_on: string | null;
+};
+
+type WorkOrderDetail = {
+  id: string;
+  workorder_id: string;
+  detail_type: DetailType;
+  hours: number | null;
+  amount: number | null;
 };
 
 const WorkOrderDetail = () => {
@@ -90,7 +97,46 @@ const WorkOrderDetail = () => {
     enabled: !!id,
   });
 
-  // Mutation for closing a work order
+  const { data: workOrderTotals } = useQuery({
+    queryKey: ['workorder-totals', id],
+    queryFn: async () => {
+      if (!id) throw new Error("Work Order ID is required");
+      
+      console.log("Fetching work order totals for ID:", id);
+      
+      const { data, error } = await supabase
+        .from('workorder_details')
+        .select('id, workorder_id, detail_type, hours, amount')
+        .eq('workorder_id', id);
+      
+      if (error) {
+        console.error("Error fetching work order details for totals:", error);
+        throw error;
+      }
+      
+      // Calculate totals
+      const details = data as WorkOrderDetail[];
+      let totalHours = 0;
+      let totalParts = 0;
+      
+      details.forEach(detail => {
+        if (detail.detail_type === 'Hours' && detail.hours) {
+          totalHours += Number(detail.hours);
+        }
+        if (detail.detail_type === 'Parts' && detail.amount) {
+          totalParts += Number(detail.amount);
+        }
+      });
+      
+      return {
+        totalHours,
+        totalParts,
+        details: details.length
+      };
+    },
+    enabled: !!id,
+  });
+
   const closeWorkOrderMutation = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error("Work Order ID is required");
@@ -356,7 +402,38 @@ const WorkOrderDetail = () => {
           </Card>
         )}
 
-        {/* Work Order Details Section */}
+        {workOrderTotals && (workOrderTotals.totalHours > 0 || workOrderTotals.totalParts > 0) && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl flex items-center">
+                <CalculatorIcon className="h-5 w-5 mr-2 text-muted-foreground" />
+                Totals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {workOrderTotals.totalHours > 0 && (
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-md">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Hours</p>
+                    <p className="text-2xl font-semibold">{workOrderTotals.totalHours}</p>
+                  </div>
+                  <ClockIcon className="h-8 w-8 text-blue-500" />
+                </div>
+              )}
+              
+              {workOrderTotals.totalParts > 0 && (
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-md">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Parts</p>
+                    <p className="text-2xl font-semibold">{formatCurrency(workOrderTotals.totalParts)}</p>
+                  </div>
+                  <TagIcon className="h-8 w-8 text-green-500" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold">Work Order Details</h2>
@@ -365,7 +442,6 @@ const WorkOrderDetail = () => {
             )}
           </div>
           
-          {/* Detail Form */}
           {activeDetailType && workOrder.status !== 'closed' && (
             <Card>
               <CardContent className="p-0">
@@ -378,12 +454,10 @@ const WorkOrderDetail = () => {
             </Card>
           )}
           
-          {/* Details List */}
           <WorkOrderDetailsList workOrderId={workOrder.id} />
         </div>
       </div>
 
-      {/* Edit Work Order Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -405,7 +479,6 @@ const WorkOrderDetail = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Close Work Order Dialog */}
       <Dialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
         <DialogContent>
           <DialogHeader>

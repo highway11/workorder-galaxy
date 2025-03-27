@@ -30,3 +30,14 @@ export function getSupabasePublicUrl(bucketName: string, filePath: string | null
   if (!filePath) return null;
   return `https://vxqruxwaqmokirlmkmxs.supabase.co/storage/v1/object/public/${bucketName}/${filePath}`;
 }
+
+/**
+ * Formats a number as currency (USD)
+ */
+export function formatCurrency(value: number | null): string {
+  if (value === null) return "-";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
