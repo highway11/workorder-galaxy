@@ -9,10 +9,18 @@ interface ImageGalleryProps {
   onOpenChange: (open: boolean) => void;
   files: string[];
   onClose: () => void;
+  initialIndex?: number;
 }
 
-const ImageGallery = ({ open, onOpenChange, files, onClose }: ImageGalleryProps) => {
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+const ImageGallery = ({ open, onOpenChange, files, onClose, initialIndex = 0 }: ImageGalleryProps) => {
+  const [currentIndex, setCurrentIndex] = React.useState(initialIndex);
+
+  // Reset the current index when the gallery opens or files change
+  React.useEffect(() => {
+    if (open && initialIndex < files.length) {
+      setCurrentIndex(initialIndex);
+    }
+  }, [open, files, initialIndex]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % files.length);

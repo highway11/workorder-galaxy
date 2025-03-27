@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MoreVertical, Edit, Trash2, FileIcon } from "lucide-react";
+import { MoreVertical, Edit, Trash2, FileIcon, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -41,6 +42,7 @@ interface WorkOrderDetail {
   amount: number | null;
   file_name: string | null;
   file_path: string | null;
+  user_name?: string;
 }
 
 interface WorkOrderDetailsListProps {
@@ -52,13 +54,17 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selectedFilePaths, setSelectedFilePaths] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { data: details, isLoading, error } = useQuery({
     queryKey: ['workorder-details', workOrderId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('workorder_details')
-        .select('*')
+        .select(`
+          *,
+          profiles:created_by(name)
+        `)
         .eq('workorder_id', workOrderId)
         .order('created_at', { ascending: false });
 
@@ -67,7 +73,11 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
         throw error;
       }
 
-      return data as WorkOrderDetail[];
+      // Transform the data to include the user_name from the profiles join
+      return data.map(detail => ({
+        ...detail,
+        user_name: detail.profiles?.name || 'Unknown User'
+      })) as WorkOrderDetail[];
     },
   });
 
@@ -106,8 +116,9 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
     deleteDetailMutation.mutate(id);
   };
 
-  const handleOpenGallery = (filePaths: string[]) => {
+  const handleOpenGallery = (filePaths: string[], initialIndex: number = 0) => {
     setSelectedFilePaths(filePaths);
+    setSelectedImageIndex(initialIndex);
     setOpen(true);
   };
 
@@ -146,7 +157,23 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           }
           
           if (isImageFile(detail.file_path)) {
-            return <Button variant="link" onClick={() => handleOpenGallery([publicUrl])}>{detail.file_name}</Button>;
+            return (
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <Button variant="link" className="p-0 h-auto" onClick={() => handleOpenGallery([publicUrl])}>{detail.file_name}</Button>
+                </div>
+                <div 
+                  className="w-16 h-16 rounded overflow-hidden bg-gray-100 cursor-pointer border border-gray-200 transition-all hover:border-gray-400"
+                  onClick={() => handleOpenGallery([publicUrl])}
+                >
+                  <img 
+                    src={publicUrl} 
+                    alt={detail.file_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            );
           } else if (isPdfFile(detail.file_path)) {
             return <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{detail.file_name}</a>;
           } else {
@@ -182,6 +209,7 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           onOpenChange={setOpen}
           files={selectedFilePaths}
           onClose={handleCloseGallery}
+          initialIndex={selectedImageIndex}
         />
       )}
       
@@ -191,6 +219,7 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           <TableRow>
             <TableHead>Type</TableHead>
             <TableHead>Detail</TableHead>
+            <TableHead>Created By</TableHead>
             <TableHead>Created At</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -202,6 +231,12 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
                 <Badge variant="secondary">{detail.detail_type}</Badge>
               </TableCell>
               <TableCell>{renderDetailValue(detail)}</TableCell>
+              <TableCell>
+                <div className="flex items-center space-x-1">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{detail.user_name}</span>
+                </div>
+              </TableCell>
               <TableCell>{format(new Date(detail.created_at), 'yyyy-MM-dd HH:mm')}</TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -231,13 +266,13 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
           ))}
           {details?.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center">No details found.</TableCell>
+              <TableCell colSpan={5} className="text-center">No details found.</TableCell>
             </TableRow>
           )}
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={4} className="text-center">
+            <TableCell colSpan={5} className="text-center">
               Total {details?.length} details
             </TableCell>
           </TableRow>
