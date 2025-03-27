@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -162,21 +161,19 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
 
       // Send notification to users in the group who are set to be notified
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-workorder-notification`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          },
-          body: JSON.stringify({
-            workOrderId: data.id
-          })
-        });
+        const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
+          "send-workorder-notification", 
+          {
+            body: {
+              workOrderId: data.id
+            }
+          }
+        );
 
-        if (!response.ok) {
-          console.error("Failed to send notifications:", await response.text());
+        if (notifyError) {
+          console.error("Failed to send notifications:", notifyError);
         } else {
-          console.log("Notification response:", await response.json());
+          console.log("Notification response:", notifyData);
         }
       } catch (notifyError) {
         // Log notification error but don't fail the work order creation
