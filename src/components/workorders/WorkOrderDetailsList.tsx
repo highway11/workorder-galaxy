@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { FileIcon, Download, FileX, Loader2, FilePdf, Image } from "lucide-react";
+import { FileIcon, Download, FileX, Loader2, FileText, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -271,7 +272,7 @@ const WorkOrderDetailsList = ({ workOrderId }: WorkOrderDetailsListProps) => {
                               className="cursor-pointer flex items-center gap-2 text-blue-600 hover:text-blue-800"
                               onClick={() => handleDownloadFile(detail)}
                             >
-                              <FilePdf className="h-5 w-5" />
+                              <FileText className="h-5 w-5" />
                               <span className="underline">{detail.file_name || "Unnamed PDF"}</span>
                             </div>
                           ) : (
