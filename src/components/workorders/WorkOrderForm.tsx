@@ -160,6 +160,29 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
         if (detailError) throw detailError;
       }
 
+      // Send notification to users in the group who are set to be notified
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-workorder-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          },
+          body: JSON.stringify({
+            workOrderId: data.id
+          })
+        });
+
+        if (!response.ok) {
+          console.error("Failed to send notifications:", await response.text());
+        } else {
+          console.log("Notification response:", await response.json());
+        }
+      } catch (notifyError) {
+        // Log notification error but don't fail the work order creation
+        console.error("Error sending notifications:", notifyError);
+      }
+
       onSuccess();
     } catch (error) {
       console.error("Error submitting form:", error);
