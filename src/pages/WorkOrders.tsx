@@ -87,13 +87,14 @@ const WorkOrders = () => {
         throw new Error(error.message);
       }
       
-      // Only cast to WorkOrder[] if we have valid data
       return (data || []) as WorkOrder[];
     }
   });
 
   const deleteWorkOrderMutation = useMutation({
     mutationFn: async (workOrderId: string) => {
+      console.log("Deleting work order with ID:", workOrderId);
+      
       // First delete related work order details
       const { error: detailsError } = await supabase
         .from('workorder_details')
@@ -104,6 +105,8 @@ const WorkOrders = () => {
         console.error("Error deleting work order details:", detailsError);
         throw new Error(detailsError.message);
       }
+      
+      console.log("Successfully deleted related details, now deleting work order");
       
       // Then delete the work order
       const { error: workOrderError } = await supabase
@@ -116,9 +119,11 @@ const WorkOrders = () => {
         throw new Error(workOrderError.message);
       }
       
+      console.log("Successfully deleted work order");
       return workOrderId;
     },
-    onSuccess: () => {
+    onSuccess: (deletedId) => {
+      console.log("Delete mutation completed successfully for ID:", deletedId);
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
       toast({
         title: "Success!",
@@ -127,6 +132,7 @@ const WorkOrders = () => {
       setWorkOrderToDelete(null);
     },
     onError: (error) => {
+      console.error("Delete mutation error:", error);
       toast({
         title: "Error",
         description: `Failed to delete work order: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -146,11 +152,13 @@ const WorkOrders = () => {
   };
 
   const handleDeleteClick = (workOrderId: string) => {
+    console.log("Delete clicked for work order ID:", workOrderId);
     setWorkOrderToDelete(workOrderId);
   };
 
   const handleConfirmDelete = () => {
     if (workOrderToDelete) {
+      console.log("Confirming deletion of work order ID:", workOrderToDelete);
       deleteWorkOrderMutation.mutate(workOrderToDelete);
     }
   };
