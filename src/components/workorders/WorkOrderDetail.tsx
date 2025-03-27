@@ -173,8 +173,48 @@ const WorkOrderDetail = () => {
     },
   });
 
+  const reopenWorkOrderMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("Work Order ID is required");
+      
+      console.log("Reopening work order with ID:", id);
+      
+      const { error } = await supabase
+        .from('workorders')
+        .update({
+          status: 'open',
+          closed_on: null
+        })
+        .eq('id', id);
+      
+      if (error) {
+        console.error("Reopen error:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      invalidateWorkOrderQueries(queryClient, id || '');
+      toast({
+        title: "Work Order Reopened",
+        description: "The work order has been successfully reopened.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error reopening work order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reopen the work order. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCloseWorkOrder = () => {
     closeWorkOrderMutation.mutate();
+  };
+
+  const handleReopenWorkOrder = () => {
+    reopenWorkOrderMutation.mutate();
   };
 
   const handleAddDetail = (type: DetailType) => {
@@ -287,7 +327,15 @@ const WorkOrderDetail = () => {
             <h1 className="text-3xl font-bold">{workOrder.item}</h1>
           </div>
           <div className="flex gap-2">
-            {workOrder.status !== 'closed' && (
+            {workOrder.status === 'closed' ? (
+              <Button 
+                onClick={handleReopenWorkOrder}
+                disabled={reopenWorkOrderMutation.isPending}
+                variant="secondary"
+              >
+                {reopenWorkOrderMutation.isPending ? "Reopening..." : "Re-open Work Order"}
+              </Button>
+            ) : (
               <>
                 <Button 
                   onClick={() => setIsEditDialogOpen(true)}
