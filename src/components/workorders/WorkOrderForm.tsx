@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,7 +55,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface WorkOrderFormProps {
-  onSuccess: () => void;
+  onSuccess: (workOrderId: string) => void;
 }
 
 const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
@@ -161,52 +160,8 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
         if (detailError) throw detailError;
       }
 
-      // Send notification to users in the group who are set to be notified
-      try {
-        // Use the correct invocation method for Supabase edge functions
-        const { data: notifyData, error: notifyError } = await supabase.functions.invoke(
-          "send-workorder-notification", 
-          {
-            body: {
-              workOrderId: data.id
-            }
-          }
-        );
-
-        if (notifyError) {
-          console.error("Failed to send notifications:", notifyError);
-          toast({
-            title: "Note",
-            description: "Work order created but notifications could not be sent",
-            variant: "default",
-          });
-        } else {
-          console.log("Notification response:", notifyData);
-          if (notifyData.message === "No users to notify") {
-            toast({
-              title: "Work Order Created",
-              description: "No users configured to receive notifications for this department",
-              variant: "default",
-            });
-          } else {
-            toast({
-              title: "Work Order Created",
-              description: notifyData.message || "Notifications sent successfully",
-              variant: "default",
-            });
-          }
-        }
-      } catch (notifyError) {
-        // Log notification error but don't fail the work order creation
-        console.error("Error sending notifications:", notifyError);
-        toast({
-          title: "Note",
-          description: "Work order created but there was an error sending notifications",
-          variant: "default",
-        });
-      }
-
-      onSuccess();
+      // Pass the workOrderId to the onSuccess callback
+      onSuccess(data.id);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({
