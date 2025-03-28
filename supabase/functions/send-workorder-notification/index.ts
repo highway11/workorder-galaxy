@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.3";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.13.0/mod.ts";
 
 // Define CORS headers
 const corsHeaders = {
@@ -78,19 +77,12 @@ async function getWorkOrderDetails(supabase: any, workOrderId: string) {
   return data;
 }
 
-// Function to send email notifications
+// Function to send email notifications using Resend API
 async function sendEmailNotification(recipient: { email: string, name: string }, workOrder: any) {
   try {
-    // Configure SMTP client with your provider's settings
-    const client = new SmtpClient();
+    // Use Resend API to send emails
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
     
-    await client.connectTLS({
-      hostname: Deno.env.get("SMTP_HOSTNAME") || "",
-      port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
-      username: Deno.env.get("SMTP_USERNAME") || "",
-      password: Deno.env.get("SMTP_PASSWORD") || "",
-    });
-
     // Format dates for the email
     const workOrderDate = new Date(workOrder.date).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
@@ -161,19 +153,29 @@ async function sendEmailNotification(recipient: { email: string, name: string },
       </html>
     `;
 
-    // Send the email
-    await client.send({
-      from: Deno.env.get("SMTP_FROM_EMAIL") || "workorders@example.com",
-      to: recipient.email,
-      subject: `New Work Order #${workOrder.wo_number}: ${workOrder.item}`,
-      content: emailContent,
-      html: emailContent,
+    // Use the Resend API to send the email
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: Deno.env.get("RESEND_FROM_EMAIL") || "Work Orders <notifications@workorders.com>",
+        to: [recipient.email],
+        subject: `New Work Order #${workOrder.wo_number}: ${workOrder.item}`,
+        html: emailContent,
+      })
     });
 
-    // Close the connection
-    await client.close();
+    const data = await res.json();
     
-    return { success: true, email: recipient.email };
+    if (!res.ok) {
+      console.error(`Resend API error: ${res.status}`, data);
+      return { success: false, email: recipient.email, error: data.message || "Failed to send email" };
+    }
+    
+    return { success: true, email: recipient.email, id: data.id };
   } catch (error) {
     console.error(`Failed to send email to ${recipient.email}:`, error);
     return { success: false, email: recipient.email, error: error.message };
