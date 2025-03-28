@@ -5,7 +5,7 @@ import WorkOrderForm from './WorkOrderForm';
 interface CreateWorkOrderDialogProps {
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (workOrderId: string) => void;
 }
 
 const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrderDialogProps) => {

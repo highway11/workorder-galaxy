@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -115,6 +114,7 @@ const WorkOrders = () => {
     }
   });
 
+  // Fix the type mismatch by making the function accept a workOrderId parameter
   const handleNewWorkOrderSuccess = async (workOrderId: string) => {
     setIsNewWorkOrderOpen(false);
     queryClient.invalidateQueries({ queryKey: ['workorders'] });
