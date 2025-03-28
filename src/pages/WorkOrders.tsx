@@ -115,13 +115,38 @@ const WorkOrders = () => {
     }
   });
 
-  const handleNewWorkOrderSuccess = () => {
+  const handleNewWorkOrderSuccess = async (workOrderId: string) => {
     setIsNewWorkOrderOpen(false);
     queryClient.invalidateQueries({ queryKey: ['workorders'] });
-    toast({
-      title: "Success!",
-      description: "Work order has been created.",
-    });
+    
+    // Send notification email for the new work order
+    try {
+      console.log("Sending notification for new work order:", workOrderId);
+      const { data, error } = await supabase.functions.invoke('send-workorder-notification', {
+        body: { workOrderId },
+      });
+      
+      if (error) {
+        console.error("Error sending notification:", error);
+        toast({
+          title: "Warning",
+          description: "Work order created but notification emails could not be sent.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Notification sent successfully:", data);
+        toast({
+          title: "Success!",
+          description: `Work order has been created and notifications sent to ${data.message}.`,
+        });
+      }
+    } catch (err) {
+      console.error("Exception sending notification:", err);
+      toast({
+        title: "Success!",
+        description: "Work order has been created but notification emails could not be sent.",
+      });
+    }
   };
 
   const handleDeleteClick = (workOrderId: string) => {
