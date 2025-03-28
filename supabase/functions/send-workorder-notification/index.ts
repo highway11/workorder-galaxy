@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.3";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.13.0/mod.ts";
 
 // Define CORS headers
 const corsHeaders = {
@@ -82,16 +82,13 @@ async function getWorkOrderDetails(supabase: any, workOrderId: string) {
 async function sendEmailNotification(recipient: { email: string, name: string }, workOrder: any) {
   try {
     // Configure SMTP client with your provider's settings
-    const client = new SMTPClient({
-      connection: {
-        hostname: Deno.env.get("SMTP_HOSTNAME") || "",
-        port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
-        tls: true,
-        auth: {
-          username: Deno.env.get("SMTP_USERNAME") || "",
-          password: Deno.env.get("SMTP_PASSWORD") || "",
-        },
-      }
+    const client = new SmtpClient();
+    
+    await client.connectTLS({
+      hostname: Deno.env.get("SMTP_HOSTNAME") || "",
+      port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+      username: Deno.env.get("SMTP_USERNAME") || "",
+      password: Deno.env.get("SMTP_PASSWORD") || "",
     });
 
     // Format dates for the email
