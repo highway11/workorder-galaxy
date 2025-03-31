@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -38,7 +37,7 @@ import UserGroupsManager from '@/components/users/UserGroupsManager';
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  role: z.enum(["admin", "enter-only"], {
+  role: z.enum(["admin", "manager", "enter-only"], {
     required_error: "Please select a role",
   }),
 });
@@ -115,7 +114,7 @@ const UserEdit = () => {
       profileForm.reset({
         name: user.name,
         email: user.email,
-        role: user.role as "admin" | "enter-only",
+        role: user.role as "admin" | "manager" | "enter-only",
       });
     }
   }, [user, profileForm]);
@@ -355,6 +354,19 @@ const UserEdit = () => {
                                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                     >
                                       Admin (Full access to all features)
+                                    </label>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id="role-manager"
+                                      checked={field.value === 'manager'}
+                                      onCheckedChange={() => field.onChange('manager')}
+                                    />
+                                    <label
+                                      htmlFor="role-manager"
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                      Manager (Can manage all except users and settings)
                                     </label>
                                   </div>
                                   <div className="flex items-center space-x-2">

@@ -17,6 +17,21 @@ import UserCreate from "./pages/UserCreate";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import { useAuth } from "./contexts/AuthContext";
+
+const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { profile, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (profile?.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+  
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+};
 
 const App = () => {
   return (
@@ -49,25 +64,27 @@ const App = () => {
               <Locations />
             </ProtectedRoute>
           } />
+          
+          {/* Admin-only Routes */}
           <Route path="/users" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <Users />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
           <Route path="/users/new" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <UserCreate />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
           <Route path="/users/:id" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <UserEdit />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
           <Route path="/settings" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <Settings />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
           
           {/* Other Routes */}

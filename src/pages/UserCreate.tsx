@@ -33,7 +33,7 @@ const userSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-  role: z.enum(['admin', 'enter-only'], {
+  role: z.enum(['admin', 'manager', 'enter-only'], {
     required_error: 'Please select a role',
   }),
 });
@@ -200,6 +200,7 @@ const UserCreate = () => {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
                             <SelectItem value="enter-only">Enter Only</SelectItem>
                           </SelectContent>
                         </Select>

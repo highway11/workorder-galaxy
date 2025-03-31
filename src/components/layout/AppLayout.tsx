@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -15,7 +14,7 @@ type NavItem = {
   title: string;
   href: string;
   icon: React.ReactNode;
-  isAdmin?: boolean;
+  restrictTo?: ('admin')[];
 };
 
 const navItems: NavItem[] = [
@@ -38,13 +37,13 @@ const navItems: NavItem[] = [
     title: "Users",
     href: "/users",
     icon: <Users className="h-5 w-5" />,
-    isAdmin: true,
+    restrictTo: ['admin'],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: <Settings className="h-5 w-5" />,
-    isAdmin: true,
+    restrictTo: ['admin'],
   },
 ];
 
@@ -55,7 +54,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // Debug logging for profile and admin status
   useEffect(() => {
     console.log("AppLayout: Current profile:", profile);
     console.log("AppLayout: Is admin?", profile?.role === 'admin');
@@ -63,14 +61,12 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   
   const isAdmin = profile?.role === 'admin';
 
-  // Close menu when changing routes on mobile
   useEffect(() => {
     if (isMobile) {
       setIsMenuOpen(false);
     }
   }, [location.pathname, isMobile]);
 
-  // Automatically open menu on desktop
   useEffect(() => {
     if (!isMobile) {
       setIsMenuOpen(true);
@@ -86,7 +82,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile menu overlay */}
       {isMobile && isMenuOpen && (
         <div 
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
@@ -94,7 +89,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside 
         className={cn(
           "fixed lg:relative z-50 flex flex-col h-full bg-white border-r border-border transition-all duration-300 ease-in-out",
@@ -103,7 +97,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             : "w-0 -translate-x-full lg:w-20 lg:translate-x-0"
         )}
       >
-        {/* Logo area */}
         <div className="flex items-center h-16 px-4">
           <div className="flex items-center space-x-2 overflow-hidden">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
@@ -129,11 +122,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         
         <Separator />
         
-        {/* Navigation */}
         <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-1 px-2">
             {navItems
-              .filter(item => !item.isAdmin || isAdmin)
+              .filter(item => !item.restrictTo || (item.restrictTo.includes('admin') && isAdmin))
               .map((item) => (
                 <li key={item.href}>
                   <Link
@@ -160,7 +152,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         
         <Separator />
         
-        {/* Profile/Logout */}
         <div className="p-4">
           <Button
             variant="ghost"
@@ -181,9 +172,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header */}
         <header className="h-16 border-b border-border flex items-center px-4 bg-background/80 backdrop-blur-sm">
           {!isMenuOpen && (
             <Button 
@@ -232,7 +221,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           )}
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-auto p-6">
           {children}
         </div>
