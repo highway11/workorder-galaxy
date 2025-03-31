@@ -10,6 +10,7 @@ interface AuthContextType {
   profile: any | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -106,6 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching user profile:', error);
     }
   };
+  
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
+    }
+  };
 
   const signOut = async () => {
     try {
@@ -130,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     isLoading,
     signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

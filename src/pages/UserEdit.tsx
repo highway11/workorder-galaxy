@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -33,6 +32,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import UserGroupsManager from '@/components/users/UserGroupsManager';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Form schemas
 const profileFormSchema = z.object({
@@ -60,6 +60,9 @@ const UserEdit = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
+  const { user } = useAuth();
+  
+  const isEditing = id !== user?.id;
 
   useEffect(() => {
     document.title = "Edit User | WorkOrder App";
@@ -85,7 +88,7 @@ const UserEdit = () => {
   });
 
   // Fetch user data
-  const { data: user, isLoading: isLoadingUser } = useQuery({
+  const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user', id],
     queryFn: async () => {
       if (!id) throw new Error("User ID is required");
@@ -111,34 +114,55 @@ const UserEdit = () => {
 
   // Set form values when user data is loaded
   useEffect(() => {
-    if (user) {
+    if (userData) {
       profileForm.reset({
-        name: user.name,
-        email: user.email,
-        role: user.role as "admin" | "manager" | "enter-only",
+        name: userData.name,
+        email: userData.email,
+        role: userData.role as "admin" | "manager" | "enter-only",
       });
     }
-  }, [user, profileForm]);
+  }, [userData, profileForm]);
 
-  // Update profile mutation
+  // Update profile mutation using the edge function
   const updateProfileMutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
       if (!id) throw new Error("User ID is required");
       
       console.log("Updating profile with values:", values);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          name: values.name,
-          email: values.email,
-          role: values.role,
-        })
-        .eq('id', id);
+      // Use the edge function for admin updates
+      const { data, error } = await supabase.functions.invoke('admin-update-user', {
+        body: {
+          userId: id,
+          updateType: 'profile',
+          updates: {
+            name: values.name,
+            role: values.role
+          }
+        }
+      });
       
       if (error) {
         console.error("Update error:", error);
         throw error;
+      }
+      
+      // Also update email if it changed
+      if (userData?.email !== values.email) {
+        const { error: emailError } = await supabase.functions.invoke('admin-update-user', {
+          body: {
+            userId: id,
+            updateType: 'email',
+            updates: {
+              email: values.email
+            }
+          }
+        });
+        
+        if (emailError) {
+          console.error("Email update error:", emailError);
+          throw emailError;
+        }
       }
       
       return { success: true };
@@ -158,23 +182,31 @@ const UserEdit = () => {
       console.error("Error updating profile:", error);
       toast({
         title: "Error",
-        description: "Failed to update user profile",
+        description: "Failed to update user profile: " + (error?.message || error),
         variant: "destructive",
       });
     }
   });
 
-  // Update password mutation
+  // Update password mutation using the edge function
   const updatePasswordMutation = useMutation({
     mutationFn: async (values: PasswordFormValues) => {
       if (!id) throw new Error("User ID is required");
       
-      // In a real application, you would call a server-side function to update the password
-      // For this example, we'll simulate a successful update
-      toast({
-        title: "Note",
-        description: "Password updates require admin functions. In a real app, this would call a server-side function.",
+      const { data, error } = await supabase.functions.invoke('admin-update-user', {
+        body: {
+          userId: id,
+          updateType: 'password',
+          updates: {
+            password: values.password
+          }
+        }
       });
+      
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
       
       return { success: true };
     },
@@ -192,7 +224,7 @@ const UserEdit = () => {
       console.error("Error updating password:", error);
       toast({
         title: "Error",
-        description: "Failed to update password",
+        description: "Failed to update password: " + (error?.message || error),
         variant: "destructive",
       });
     }
@@ -230,7 +262,7 @@ const UserEdit = () => {
   useEffect(() => {
     if (isLoadingUser) return;
     
-    if (!user && id) {
+    if (!userData && id) {
       console.error("User not found");
       toast({
         title: "Error",
@@ -238,7 +270,7 @@ const UserEdit = () => {
         variant: "destructive",
       });
     }
-  }, [isLoadingUser, user, id, toast]);
+  }, [isLoadingUser, userData, id, toast]);
 
   return (
     <AppLayout>
@@ -274,17 +306,17 @@ const UserEdit = () => {
             <div className="flex justify-center py-8">
               <p>Loading user data...</p>
             </div>
-          ) : user ? (
+          ) : userData ? (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                    {getInitials(user.name)}
+                    {getInitials(userData.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-xl font-semibold">{user.name}</h2>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <h2 className="text-xl font-semibold">{userData.name}</h2>
+                  <p className="text-sm text-muted-foreground">{userData.email}</p>
                 </div>
               </div>
 
@@ -477,7 +509,7 @@ const UserEdit = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {user && <UserGroupsManager userId={user.id} />}
+                      {userData && <UserGroupsManager userId={userData.id} />}
                     </CardContent>
                   </Card>
                 </TabsContent>
