@@ -21,7 +21,7 @@ const WorkOrders = () => {
   const [workOrderToDelete, setWorkOrderToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     document.title = "Work Orders | WorkOrder App";
@@ -31,7 +31,14 @@ const WorkOrders = () => {
     queryKey: ['workorders'],
     queryFn: async () => {
       console.log("Fetching work orders");
-      const { data, error } = await supabase
+      
+      // Check if the user is an admin (can see all work orders)
+      const isAdmin = profile?.role === 'admin';
+      
+      // Check if the user is a manager (can see group work orders)
+      const isManager = profile?.role === 'manager';
+      
+      let query = supabase
         .from('workorders')
         .select(`
           id, 
@@ -44,9 +51,41 @@ const WorkOrders = () => {
           date, 
           complete_by, 
           status,
-          gl_number
-        `)
-        .order('wo_number', { ascending: false });
+          gl_number,
+          group_id
+        `);
+      
+      // Apply different filters based on user role
+      if (!isAdmin) {
+        if (isManager) {
+          // For managers, first get their groups
+          console.log("User is a manager, fetching their groups");
+          const { data: userGroups } = await supabase
+            .from('user_groups')
+            .select('group_id')
+            .eq('user_id', user?.id);
+          
+          if (userGroups && userGroups.length > 0) {
+            // Get work orders for any of these groups
+            const groupIds = userGroups.map(g => g.group_id);
+            console.log("Manager is in groups:", groupIds);
+            query = query.in('group_id', groupIds);
+          } else {
+            console.log("Manager has no groups, showing only their work orders");
+            // Fallback to showing only their created work orders if they have no groups
+            query = query.eq('created_by', user?.id);
+          }
+        } else {
+          // For regular users, only show work orders they created
+          console.log("Regular user, showing only their work orders");
+          query = query.eq('created_by', user?.id);
+        }
+      } else {
+        console.log("User is admin, showing all work orders");
+      }
+      
+      // Add the order by clause and execute the query
+      const { data, error } = await query.order('wo_number', { ascending: false });
       
       if (error) {
         console.error("Error fetching work orders:", error);
@@ -55,7 +94,8 @@ const WorkOrders = () => {
       
       console.log("Fetched work orders:", data);
       return (data || []) as WorkOrder[];
-    }
+    },
+    enabled: !!user
   });
 
   const deleteWorkOrderMutation = useMutation({
@@ -114,7 +154,6 @@ const WorkOrders = () => {
     }
   });
 
-  // Fix the type mismatch by making the function accept a workOrderId parameter
   const handleNewWorkOrderSuccess = async (workOrderId: string) => {
     setIsNewWorkOrderOpen(false);
     queryClient.invalidateQueries({ queryKey: ['workorders'] });
