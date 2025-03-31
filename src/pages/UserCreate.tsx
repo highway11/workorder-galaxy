@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const userSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   role: z.enum(['admin', 'enter-only'], {
     required_error: 'Please select a role',
   }),
@@ -48,6 +49,7 @@ const UserCreate = () => {
     defaultValues: {
       email: '',
       name: '',
+      password: '',
       role: 'enter-only',
     },
   });
@@ -55,9 +57,10 @@ const UserCreate = () => {
   const onSubmit = async (values: UserFormValues) => {
     setIsLoading(true);
     try {
-      // First, create the user in auth
+      // Create the user in auth with password
       const { data, error } = await supabase.auth.admin.createUser({
         email: values.email,
+        password: values.password,
         email_confirm: true,
         user_metadata: { name: values.name },
       });
@@ -160,6 +163,25 @@ const UserCreate = () => {
                             placeholder="John Doe" 
                             {...field} 
                             autoComplete="off"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            {...field} 
+                            autoComplete="new-password"
                           />
                         </FormControl>
                         <FormMessage />
