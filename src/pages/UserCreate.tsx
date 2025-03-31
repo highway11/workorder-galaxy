@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -57,29 +56,28 @@ const UserCreate = () => {
   const onSubmit = async (values: UserFormValues) => {
     setIsLoading(true);
     try {
-      // Create the user in auth with password
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: values.email,
-        password: values.password,
-        email_confirm: true,
-        user_metadata: { name: values.name },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // The profile is automatically created via a database trigger
-      // We just need to update the role
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ role: values.role })
-          .eq('id', data.user.id);
-
-        if (profileError) {
-          throw profileError;
+      // Call the edge function to create a user
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: values.email,
+            password: values.password,
+            name: values.name,
+            role: values.role,
+          }),
         }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user');
       }
 
       toast({
