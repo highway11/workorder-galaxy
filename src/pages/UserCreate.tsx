@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQueryClient } from '@tanstack/react-query';
 
 const userSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -42,6 +44,7 @@ const UserCreate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -69,6 +72,9 @@ const UserCreate = () => {
       if (error) {
         throw new Error(error.message || 'Failed to create user');
       }
+
+      // Invalidate the users query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['users'] });
 
       toast({
         title: 'User created',
