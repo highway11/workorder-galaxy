@@ -56,28 +56,18 @@ const UserCreate = () => {
   const onSubmit = async (values: UserFormValues) => {
     setIsLoading(true);
     try {
-      // Call the edge function to create a user
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-          body: JSON.stringify({
-            email: values.email,
-            password: values.password,
-            name: values.name,
-            role: values.role,
-          }),
-        }
-      );
+      // Call the edge function using supabase.functions.invoke method
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: values.email,
+          password: values.password,
+          name: values.name,
+          role: values.role,
+        },
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create user');
+      if (error) {
+        throw new Error(error.message || 'Failed to create user');
       }
 
       toast({
