@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -124,7 +125,9 @@ const UserEdit = () => {
     mutationFn: async (values: ProfileFormValues) => {
       if (!id) throw new Error("User ID is required");
       
-      const { error } = await supabase
+      console.log("Updating profile with values:", values);
+      
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           name: values.name,
@@ -133,13 +136,19 @@ const UserEdit = () => {
         })
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
       
       return { success: true };
     },
     onSuccess: () => {
+      // Invalidate all queries for this user to ensure data is refreshed
       queryClient.invalidateQueries({ queryKey: ['user', id] });
+      // Also invalidate the users list query to update the listing
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      
       toast({
         title: "Success",
         description: "User profile updated successfully",
