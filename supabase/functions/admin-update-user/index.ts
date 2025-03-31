@@ -89,6 +89,16 @@ serve(async (req) => {
     // Handle different types of updates
     switch (updateType) {
       case 'profile':
+        // Validate role if it's being updated
+        if (updates.role && !['admin', 'manager', 'enter-only'].includes(updates.role)) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Invalid role. Role must be one of: admin, manager, enter-only' 
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
         // Update the user's profile (name, email, role)
         const { data: profileData, error: updateProfileError } = await supabaseAdmin
           .from('profiles')
