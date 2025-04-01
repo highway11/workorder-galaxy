@@ -113,10 +113,29 @@ const WorkOrderForm = ({ onSuccess }: WorkOrderFormProps) => {
         throw new Error("You must be logged in to create a work order");
       }
 
-      // Create work order
+      // Generate a unique work order number using the edge function
+      console.log("Calling edge function to generate work order number");
+      const { data: workOrderNumberData, error: workOrderNumberError } = await supabase.functions.invoke(
+        'generate-workorder-number',
+        {
+          method: 'POST',
+          body: {}
+        }
+      );
+
+      if (workOrderNumberError) {
+        console.error("Error generating work order number:", workOrderNumberError);
+        throw new Error(`Failed to generate work order number: ${workOrderNumberError.message}`);
+      }
+
+      console.log("Generated work order number:", workOrderNumberData);
+      const workOrderNumber = workOrderNumberData.workOrderNumber;
+
+      // Create work order with the generated number
       const { data, error } = await supabase
         .from('workorders')
         .insert({
+          wo_number: workOrderNumber, // Use the generated number instead of relying on the trigger
           date: values.date.toISOString(),
           complete_by: values.complete_by.toISOString(),
           requested_by: values.requested_by,
