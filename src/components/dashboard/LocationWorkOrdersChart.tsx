@@ -57,7 +57,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
             Distribution of work orders across different locations this year
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center items-center h-60">
+        <CardContent className="flex justify-center items-center h-56">
           <p className="text-muted-foreground">No data available</p>
         </CardContent>
       </Card>
@@ -73,7 +73,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-60">
+        <div className="h-56">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -82,7 +82,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
                   top: 10,
                   right: 10,
                   left: 10,
-                  bottom: 40,
+                  bottom: 30,
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -90,8 +90,8 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
                   dataKey="name" 
                   angle={-45} 
                   textAnchor="end"
-                  height={60}
-                  tick={{ fontSize: 12 }}
+                  height={50}
+                  tick={{ fontSize: 11 }}
                 />
                 <YAxis allowDecimals={false} />
                 <Tooltip content={<ChartTooltipContent />} />

@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, CalendarDays, Plus } from 'lucide-react';
@@ -127,8 +128,8 @@ const Dashboard = () => {
                   Distribution of work orders across different locations this year
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex justify-center items-center h-60">
-                <Skeleton className="h-52 w-full" />
+              <CardContent className="flex justify-center items-center h-56">
+                <Skeleton className="h-48 w-full" />
               </CardContent>
             </Card>
           ) : (
