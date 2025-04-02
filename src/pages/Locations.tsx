@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { LocationsTable } from '@/components/locations/LocationsTable';
+import { useGroup } from '@/contexts/GroupContext';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -28,6 +29,7 @@ const Locations = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { selectedGroupId } = useGroup();
   
   // Setup form with zod validation
   const addForm = useForm<LocationFormValues>({
@@ -44,9 +46,16 @@ const Locations = () => {
   // Mutation to add a new location
   const addLocationMutation = useMutation({
     mutationFn: async (values: LocationFormValues) => {
+      if (!selectedGroupId) {
+        throw new Error("No group selected");
+      }
+      
       const { data, error } = await supabase
         .from('locations')
-        .insert([{ name: values.name }])
+        .insert([{ 
+          name: values.name,
+          group_id: selectedGroupId 
+        }])
         .select('*')
         .single();
 

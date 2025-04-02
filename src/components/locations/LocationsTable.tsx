@@ -15,10 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
+import { useGroup } from "@/contexts/GroupContext";
 
 type LocationStats = {
   id: string;
   name: string;
+  group_id: string;
   totalWorkorders: number;
   openWorkorders: number;
   lastWorkorderDate: string | null;
@@ -29,6 +31,7 @@ type SortDirection = "asc" | "desc";
 
 export function LocationsTable() {
   const { locationStats } = useDashboardStats();
+  const { selectedGroupId } = useGroup();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -43,9 +46,16 @@ export function LocationsTable() {
     }
   };
 
+  // Filter locations by selected group
+  const filteredByGroup = locationStats.data
+    ? locationStats.data.filter(location => 
+        !selectedGroupId || location.group_id === selectedGroupId
+      )
+    : [];
+
   // Sort and filter locations
-  const sortedAndFilteredLocations = locationStats.data
-    ? [...locationStats.data]
+  const sortedAndFilteredLocations = filteredByGroup
+    ? [...filteredByGroup]
         .filter((location) => 
           location.name.toLowerCase().includes(searchTerm.toLowerCase())
         )

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGroup } from "@/contexts/GroupContext";
 
 // Import our new components
 import WorkOrderSearch from '@/components/workorders/WorkOrderSearch';
@@ -22,15 +24,16 @@ const WorkOrders = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
+  const { selectedGroupId } = useGroup();
 
   useEffect(() => {
     document.title = "Work Orders | WorkOrder App";
   }, []);
 
   const { data: workOrders, isLoading, error } = useQuery({
-    queryKey: ['workorders'],
+    queryKey: ['workorders', selectedGroupId],
     queryFn: async () => {
-      console.log("Fetching work orders");
+      console.log("Fetching work orders for group:", selectedGroupId);
       
       // Check if the user is an admin (can see all work orders)
       const isAdmin = profile?.role === 'admin';
@@ -80,8 +83,9 @@ const WorkOrders = () => {
           console.log("Regular user, showing only their work orders");
           query = query.eq('created_by', user?.id);
         }
-      } else {
-        console.log("User is admin, showing all work orders");
+      } else if (selectedGroupId) {
+        // If admin with selected group, filter by that group
+        query = query.eq('group_id', selectedGroupId);
       }
       
       // Add the order by clause and execute the query
