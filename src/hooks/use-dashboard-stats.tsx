@@ -74,6 +74,53 @@ export function useDashboardStats() {
     }));
   };
   
+  // New function to fetch location statistics for the table
+  const fetchLocationStats = async () => {
+    // Get all locations
+    const { data: locations, error: locationsError } = await supabase
+      .from("locations")
+      .select("id, name")
+      .order("name");
+      
+    if (locationsError) {
+      console.error("Error fetching locations:", locationsError);
+      throw locationsError;
+    }
+    
+    if (!locations || locations.length === 0) {
+      return [];
+    }
+    
+    // Get all workorders to calculate statistics
+    const { data: workorders, error: workordersError } = await supabase
+      .from("workorders")
+      .select("id, location_id, status, date")
+      .order("date", { ascending: false });
+      
+    if (workordersError) {
+      console.error("Error fetching workorders for locations:", workordersError);
+      throw workordersError;
+    }
+    
+    // Calculate statistics for each location
+    const locationStats = locations.map(location => {
+      const locationWorkorders = workorders?.filter(wo => wo.location_id === location.id) || [];
+      const totalWorkorders = locationWorkorders.length;
+      const openWorkorders = locationWorkorders.filter(wo => wo.status === "open").length;
+      const lastWorkorderDate = locationWorkorders[0]?.date || null;
+      
+      return {
+        id: location.id,
+        name: location.name,
+        totalWorkorders,
+        openWorkorders,
+        lastWorkorderDate
+      };
+    });
+    
+    return locationStats;
+  };
+  
   const openWorkOrders = useQuery({
     queryKey: ["openWorkOrders"],
     queryFn: fetchOpenWorkOrders
@@ -89,9 +136,16 @@ export function useDashboardStats() {
     queryFn: fetchWorkOrdersByLocation
   });
   
+  // Add the query for location statistics
+  const locationStats = useQuery({
+    queryKey: ["locationStats"],
+    queryFn: fetchLocationStats
+  });
+  
   return {
     openWorkOrders,
     workOrdersThisMonth,
-    workOrdersByLocation
+    workOrdersByLocation,
+    locationStats
   };
 }
