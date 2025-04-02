@@ -17,11 +17,17 @@ type GroupContextType = {
   error: Error | null;
 };
 
+const GROUP_STORAGE_KEY = "workorder_app_selected_group";
+
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
 
 export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile } = useAuth();
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
+    // Try to load from localStorage first
+    const saved = localStorage.getItem(GROUP_STORAGE_KEY);
+    return saved ? saved : null;
+  });
 
   // Fetch all groups
   const { data: groups, isLoading, error } = useQuery({
@@ -44,6 +50,13 @@ export const GroupProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setSelectedGroupId(groups[0].id);
     }
   }, [groups, selectedGroupId]);
+
+  // Persist selected group to localStorage
+  useEffect(() => {
+    if (selectedGroupId) {
+      localStorage.setItem(GROUP_STORAGE_KEY, selectedGroupId);
+    }
+  }, [selectedGroupId]);
 
   return (
     <GroupContext.Provider

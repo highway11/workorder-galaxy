@@ -3,136 +3,169 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useGroup } from "@/contexts/GroupContext";
 
-export function useDashboardStats() {
+export const useDashboardStats = () => {
   const { selectedGroupId } = useGroup();
 
-  // Query to fetch count of work orders by status
+  // Fetch work orders statistics (counts by status)
   const workOrdersStats = useQuery({
-    queryKey: ["workOrdersStats", selectedGroupId],
+    queryKey: ["workorder-stats", selectedGroupId],
     queryFn: async () => {
-      const query = supabase
+      const queryBuilder = supabase
         .from("workorders")
+        .select("status, count")
         .select("status", { count: "exact" });
       
-      // Filter by selected group if any
       if (selectedGroupId) {
-        query.eq("group_id", selectedGroupId);
+        queryBuilder.eq("group_id", selectedGroupId);
       }
+      
+      const { count: total, error: totalError } = await queryBuilder;
+      
+      if (totalError) throw totalError;
+      
+      const statuses = ["open", "in-progress", "completed", "closed"];
+      const statusCounts: Record<string, number> = {};
+      
+      for (const status of statuses) {
+        const queryBuilder = supabase
+          .from("workorders")
+          .select("id", { count: "exact" })
+          .eq("status", status);
         
-      const { data, error, count } = await query;
-      
-      if (error) throw error;
-      
-      // Count by status
-      const stats = {
-        total: count || 0,
-        open: 0,
-        "in-progress": 0,
-        completed: 0,
-        closed: 0
-      };
-      
-      data?.forEach(item => {
-        if (stats.hasOwnProperty(item.status)) {
-          stats[item.status as keyof typeof stats] += 1;
+        if (selectedGroupId) {
+          queryBuilder.eq("group_id", selectedGroupId);
         }
-      });
+        
+        const { count, error } = await queryBuilder;
+        
+        if (error) throw error;
+        statusCounts[status] = count || 0;
+      }
       
-      return stats;
-    }
+      return {
+        total: total || 0,
+        open: statusCounts.open || 0,
+        "in-progress": statusCounts["in-progress"] || 0,
+        completed: statusCounts.completed || 0,
+        closed: statusCounts.closed || 0,
+      };
+    },
   });
 
-  // Query to fetch stats for locations
+  // Get locations with most open work orders
   const locationStats = useQuery({
-    queryKey: ["locationStats", selectedGroupId],
+    queryKey: ["location-stats", selectedGroupId],
     queryFn: async () => {
-      // First, get all locations
-      const { data: locations, error: locError } = await supabase
+      const { data: locations, error: locationsError } = await supabase
         .from("locations")
         .select("id, name, group_id");
         
-      if (locError) throw locError;
+      if (locationsError) throw locationsError;
       
-      // For each location, get work order counts
-      const locationPromises = locations.map(async location => {
-        let query = supabase
-          .from("workorders")
-          .select("id, status, date", { count: "exact" })
-          .eq("location_id", location.id);
+      let filteredLocations = locations;
+      if (selectedGroupId) {
+        filteredLocations = locations.filter(location => location.group_id === selectedGroupId);
+      }
+      
+      const locationStats = await Promise.all(
+        filteredLocations.map(async (location) => {
+          // Get total work orders for this location
+          const totalQuery = supabase
+            .from("workorders")
+            .select("id", { count: "exact" })
+            .eq("location_id", location.id);
+            
+          if (selectedGroupId) {
+            totalQuery.eq("group_id", selectedGroupId);
+          }
           
-        // Filter by selected group if any
-        if (selectedGroupId) {
-          query.eq("group_id", selectedGroupId);
-        }
-        
-        const { data: workorders, count } = await query;
-        
-        // Get count of open work orders
-        const openWorkorders = workorders?.filter(wo => 
-          wo.status === "open" || wo.status === "in-progress"
-        ).length || 0;
-        
-        // Get the date of the most recent work order
-        let lastWorkorderDate = null;
-        if (workorders && workorders.length > 0) {
-          // Sort by date descending
-          workorders.sort((a, b) => 
-            new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          lastWorkorderDate = workorders[0].date;
-        }
-        
-        return {
-          id: location.id,
-          name: location.name,
-          group_id: location.group_id,
-          totalWorkorders: count || 0,
-          openWorkorders,
-          lastWorkorderDate
-        };
-      });
+          const { count: totalWorkorders, error: totalError } = await totalQuery;
+          
+          if (totalError) throw totalError;
+          
+          // Get open work orders for this location
+          const openQuery = supabase
+            .from("workorders")
+            .select("id", { count: "exact" })
+            .eq("location_id", location.id)
+            .eq("status", "open");
+            
+          if (selectedGroupId) {
+            openQuery.eq("group_id", selectedGroupId);
+          }
+          
+          const { count: openWorkorders, error: openError } = await openQuery;
+          
+          if (openError) throw openError;
+          
+          // Get latest work order date for this location
+          const latestQuery = supabase
+            .from("workorders")
+            .select("created_at")
+            .eq("location_id", location.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+            
+          if (selectedGroupId) {
+            latestQuery.eq("group_id", selectedGroupId);
+          }
+          
+          const { data: latestWorkorder, error: latestError } = await latestQuery;
+          
+          if (latestError) throw latestError;
+          
+          return {
+            id: location.id,
+            name: location.name,
+            group_id: location.group_id,
+            totalWorkorders: totalWorkorders || 0,
+            openWorkorders: openWorkorders || 0,
+            lastWorkorderDate: latestWorkorder?.[0]?.created_at || null,
+          };
+        })
+      );
       
-      const locationStatsData = await Promise.all(locationPromises);
-      
-      // If we have a selected group, filter the locations
-      return selectedGroupId 
-        ? locationStatsData.filter(loc => loc.group_id === selectedGroupId)
-        : locationStatsData;
-    }
+      // Sort by total work orders, descending
+      return locationStats.sort((a, b) => b.totalWorkorders - a.totalWorkorders);
+    },
   });
 
-  // Query to fetch recent work orders
+  // Get recent work orders
   const recentWorkOrders = useQuery({
-    queryKey: ["recentWorkOrders", selectedGroupId],
+    queryKey: ["recent-workorders", selectedGroupId],
     queryFn: async () => {
-      let query = supabase
+      const queryBuilder = supabase
         .from("workorders")
         .select(`
           id,
           wo_number,
           item,
           status,
-          date,
-          location:locations(name)
+          created_at,
+          locations (
+            id,
+            name
+          )
         `)
-        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(5);
         
-      // Filter by selected group if any
       if (selectedGroupId) {
-        query.eq("group_id", selectedGroupId);
+        queryBuilder.eq("group_id", selectedGroupId);
       }
       
-      const { data, error } = await query;
+      const { data, error } = await queryBuilder;
       
       if (error) throw error;
       return data;
-    }
+    },
   });
 
   return {
     workOrdersStats,
     locationStats,
-    recentWorkOrders
+    recentWorkOrders,
   };
-}
+};
+
+export default useDashboardStats;

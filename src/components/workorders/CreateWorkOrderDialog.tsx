@@ -90,7 +90,7 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
         .order("name");
         
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!form.watch("groupId"),
   });
@@ -105,7 +105,7 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
         .order("name");
         
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
