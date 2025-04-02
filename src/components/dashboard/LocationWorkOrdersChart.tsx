@@ -57,7 +57,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
             Distribution of work orders across different locations this year
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center items-center h-64">
+        <CardContent className="flex justify-center items-center h-60">
           <p className="text-muted-foreground">No data available</p>
         </CardContent>
       </Card>
@@ -65,7 +65,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>Work Orders by Location</CardTitle>
         <CardDescription>
@@ -73,7 +73,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className="h-60">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
