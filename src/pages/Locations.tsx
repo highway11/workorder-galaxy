@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { LocationsTable } from '@/components/locations/LocationsTable';
 import { useGroup } from '@/contexts/GroupContext';
+import { useAuth } from '@/contexts/AuthContext';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -30,6 +31,7 @@ const Locations = () => {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { selectedGroupId } = useGroup();
+  const { profile } = useAuth();
   
   // Setup form with zod validation
   const addForm = useForm<LocationFormValues>({

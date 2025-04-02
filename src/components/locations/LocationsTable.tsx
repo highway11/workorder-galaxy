@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Search, MapPin, ArrowUp, ArrowDown } from "lucide-react";
@@ -16,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useGroup } from "@/contexts/GroupContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type LocationStats = {
   id: string;
@@ -32,9 +35,39 @@ type SortDirection = "asc" | "desc";
 export function LocationsTable() {
   const { locationStats } = useDashboardStats();
   const { selectedGroupId } = useGroup();
+  const { profile, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [userGroups, setUserGroups] = useState<string[]>([]);
+
+  // Fetch user's groups if they are a manager
+  const { data: userGroupsData } = useQuery({
+    queryKey: ['user-groups', user?.id],
+    queryFn: async () => {
+      if (!user || profile?.role !== 'manager') return [];
+      
+      const { data, error } = await supabase
+        .from('user_groups')
+        .select('group_id')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error("Error fetching user groups:", error);
+        return [];
+      }
+      
+      return data.map(g => g.group_id);
+    },
+    enabled: !!user && profile?.role === 'manager'
+  });
+
+  // Update userGroups state when data changes
+  useEffect(() => {
+    if (userGroupsData) {
+      setUserGroups(userGroupsData);
+    }
+  }, [userGroupsData]);
 
   // Handle sort click
   const handleSort = (field: SortField) => {
@@ -46,16 +79,31 @@ export function LocationsTable() {
     }
   };
 
-  // Filter locations by selected group
-  const filteredByGroup = locationStats.data
-    ? locationStats.data.filter(location => 
-        !selectedGroupId || location.group_id === selectedGroupId
-      )
+  // Filter locations based on user role and groups
+  const filteredLocations = locationStats.data
+    ? locationStats.data.filter(location => {
+        // For admins with selected group
+        if (profile?.role === 'admin' && selectedGroupId) {
+          return location.group_id === selectedGroupId;
+        }
+        // For admins without selected group, show all
+        else if (profile?.role === 'admin') {
+          return true;
+        }
+        // For managers, show locations from their groups
+        else if (profile?.role === 'manager') {
+          return userGroups.includes(location.group_id);
+        }
+        // For regular users, only show their created locations or default to group if selected
+        else {
+          return selectedGroupId ? location.group_id === selectedGroupId : true;
+        }
+      })
     : [];
 
   // Sort and filter locations
-  const sortedAndFilteredLocations = filteredByGroup
-    ? [...filteredByGroup]
+  const sortedAndFilteredLocations = filteredLocations
+    ? [...filteredLocations]
         .filter((location) => 
           location.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
