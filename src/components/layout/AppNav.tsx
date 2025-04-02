@@ -2,8 +2,8 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
-  Home, 
-  ClipboardList, 
+  LayoutGrid, 
+  FileText, 
   MapPin, 
   Users, 
   Settings,
@@ -32,10 +32,11 @@ const AppNav = () => {
           asChild
           isActive={isActive("/")}
           tooltip="Dashboard"
+          className="text-primary"
         >
           <Link to="/">
-            <Home className="h-4 w-4" />
-            <span>Dashboard</span>
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            <span className="text-base">Dashboard</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -45,10 +46,11 @@ const AppNav = () => {
           asChild
           isActive={isActive("/workorders") || location.pathname.startsWith("/workorders/")}
           tooltip="Work Orders"
+          className="text-muted-foreground"
         >
           <Link to="/workorders">
-            <ClipboardList className="h-4 w-4" />
-            <span>Work Orders</span>
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base">Work Orders</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -58,10 +60,11 @@ const AppNav = () => {
           asChild
           isActive={isActive("/locations")}
           tooltip="Locations"
+          className="text-muted-foreground"
         >
           <Link to="/locations">
-            <MapPin className="h-4 w-4" />
-            <span>Locations</span>
+            <MapPin className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base">Locations</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -73,10 +76,11 @@ const AppNav = () => {
               asChild
               isActive={isActive("/users") || location.pathname.startsWith("/users/")}
               tooltip="Users"
+              className="text-muted-foreground"
             >
               <Link to="/users">
-                <Users className="h-4 w-4" />
-                <span>Users</span>
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base">Users</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -86,10 +90,11 @@ const AppNav = () => {
               asChild
               isActive={isActive("/settings")}
               tooltip="Settings"
+              className="text-muted-foreground"
             >
               <Link to="/settings">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <span className="text-base">Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -101,10 +106,11 @@ const AppNav = () => {
           asChild
           tooltip="Logout"
           onClick={signOut}
+          className="text-muted-foreground"
         >
           <Link to="/logout">
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
+            <LogOut className="h-5 w-5 text-muted-foreground" />
+            <span className="text-base">Logout</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>

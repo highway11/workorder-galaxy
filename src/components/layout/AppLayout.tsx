@@ -1,5 +1,6 @@
 
 import React from "react";
+import { FileText } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarTrigger, SidebarInset, SidebarFooter, SidebarSeparator } from "@/components/ui/sidebar";
 import AppHeader from "./AppHeader";
 import AppNav from "./AppNav";
@@ -15,20 +16,16 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
       <div className="relative flex min-h-screen">
-        <Sidebar>
+        <Sidebar className="bg-background border-r border-border">
           <SidebarHeader>
             <div className="h-14 flex items-center px-4">
               <div className="flex items-center gap-2">
-                <img 
-                  src="/logo.svg" 
-                  alt="Logo" 
-                  className="h-6 w-6" 
-                />
-                <h1 className="text-xl font-bold tracking-tight">WorkOrder App</h1>
+                <FileText className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-semibold tracking-tight">WorkOrder</h1>
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="px-2 py-2">
             <AppNav />
           </SidebarContent>
           <SidebarFooter>

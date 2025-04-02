@@ -39,8 +39,8 @@
     --sidebar-foreground: 240 5% 26%;
     --sidebar-primary: 210 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-accent: 210 95% 95%;
+    --sidebar-accent-foreground: 210 100% 50%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 92% 60%;
   }
@@ -166,5 +166,18 @@
   
   .input-focus-ring {
     @apply focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+  
+  /* Sidebar specific styles */
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors;
+  }
+  
+  .sidebar-nav-item-active {
+    @apply bg-sidebar-accent text-primary;
+  }
+  
+  .sidebar-nav-item-inactive {
+    @apply text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground;
   }
 }
