@@ -9,6 +9,14 @@ import { Link } from 'react-router-dom';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import { LocationWorkOrdersChart } from '@/components/dashboard/LocationWorkOrdersChart';
 import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 
 const DashboardCard = ({ 
   title, 
@@ -57,9 +65,10 @@ const DashboardCard = ({
 
 const Dashboard = () => {
   const { 
-    openWorkOrders, 
-    workOrdersThisMonth, 
-    workOrdersByLocation 
+    openWorkOrders,
+    workOrdersThisMonth,
+    workOrdersByLocation,
+    recentWorkOrders
   } = useDashboardStats();
 
   useEffect(() => {
@@ -150,9 +159,46 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center text-muted-foreground py-8">
-                Connect to Supabase to load your work orders
-              </p>
+              {recentWorkOrders.isLoading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : recentWorkOrders.data && recentWorkOrders.data.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Number</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentWorkOrders.data.map((workOrder) => (
+                      <TableRow key={workOrder.id}>
+                        <TableCell className="font-medium">
+                          <Link to={`/workorders/${workOrder.id}`} className="text-primary hover:underline">
+                            {workOrder.wo_number || 'N/A'}
+                          </Link>
+                        </TableCell>
+                        <TableCell>{workOrder.item}</TableCell>
+                        <TableCell>{workOrder.locations?.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium 
+                            ${workOrder.status === 'open' ? 'bg-blue-100 text-blue-800' : 
+                              workOrder.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' : 
+                              workOrder.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              'bg-gray-100 text-gray-800'}`}>
+                            {workOrder.status}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No recent work orders found
+                </p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
