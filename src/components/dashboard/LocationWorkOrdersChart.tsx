@@ -73,9 +73,10 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-56">
+        <div>
+        <ResponsiveContainer width="100%" height={400}>
           <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="100%">
+           
               <BarChart
                 data={sortedData}
                 margin={{
@@ -90,7 +91,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
                   dataKey="name" 
                   angle={-45} 
                   textAnchor="end"
-                  height={50}
+                  height={80}
                   tick={{ fontSize: 11 }}
                 />
                 <YAxis allowDecimals={false} />
@@ -101,8 +102,10 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
                   ))}
                 </Bar>
               </BarChart>
-            </ResponsiveContainer>
+            
+          
           </ChartContainer>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
