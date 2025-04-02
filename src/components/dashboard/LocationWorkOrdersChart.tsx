@@ -30,25 +30,27 @@ const COLORS = [
 ];
 
 export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
-  // Sort data by count in descending order
-  const sortedData = useMemo(() => {
-    return [...data].sort((a, b) => b.count - a.count);
+  // Filter out locations with zero work orders and sort by count in descending order
+  const filteredAndSortedData = useMemo(() => {
+    return [...data]
+      .filter(location => location.count > 0)
+      .sort((a, b) => b.count - a.count);
   }, [data]);
 
   // Config for the chart to map location names to colors
   const chartConfig = useMemo(() => {
     const config: Record<string, { color: string }> = {};
     
-    sortedData.forEach((item, index) => {
+    filteredAndSortedData.forEach((item, index) => {
       config[item.name] = {
         color: COLORS[index % COLORS.length]
       };
     });
     
     return config;
-  }, [sortedData]);
+  }, [filteredAndSortedData]);
 
-  if (!data || data.length === 0) {
+  if (!filteredAndSortedData.length) {
     return (
       <Card>
         <CardHeader>
@@ -78,7 +80,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
           <ChartContainer config={chartConfig}>
            
               <BarChart
-                data={sortedData}
+                data={filteredAndSortedData}
                 margin={{
                   top: 10,
                   right: 10,
@@ -97,7 +99,7 @@ export function LocationWorkOrdersChart({ data }: { data: LocationData[] }) {
                 <YAxis allowDecimals={false} />
                 <Tooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {sortedData.map((entry, index) => (
+                  {filteredAndSortedData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>

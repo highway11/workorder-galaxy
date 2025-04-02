@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, CalendarDays, Plus } from 'lucide-react';
@@ -77,7 +76,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 pb-8">
+      <div className="space-y-6 pb-8 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -128,6 +127,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          className="w-full"
         >
           {workOrdersByLocation.isLoading ? (
             <Card>
@@ -150,6 +150,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
+          className="w-full"
         >
           <Card>
             <CardHeader>
