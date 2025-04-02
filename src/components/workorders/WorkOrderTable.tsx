@@ -49,7 +49,7 @@ const WorkOrderTable = ({
   
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), 'yyyy-MM-dd');
+      return format(new Date(dateString), 'MMM d, yyyy');  
     } catch (error) {
       console.error("Invalid date:", dateString);
       return dateString;
