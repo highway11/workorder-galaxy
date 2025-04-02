@@ -25,65 +25,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true; // Flag to prevent state updates on unmounted component
 
-    const checkSession = async () => {
-        console.log("AuthContext: Checking session...");
-        try {
-            const { data: { session }, error } = await supabase.auth.getSession();
-
-            if (error) {
-                // Log the specific error from Supabase
-                console.error("AuthContext: Error getting session:", error.message);
-            }
-
-            if (isMounted) {
-                setSession(session);
-                setUser(session?.user ?? null);
-                
-                if (session?.user) {
-                    console.log("AuthContext: User authenticated, fetching profile...");
-                    await fetchUserProfile(session.user.id);
-                }
-                console.log("AuthContext: Session check complete. User:", session?.user ?? null);
-            }
-        } catch (catchError) {
-            // Catch any unexpected errors during the async operation
-            console.error("AuthContext: Unexpected error during getSession:", catchError);
-        } finally {
-            // *** Ensure loading is set to false even if there's an error ***
-            if (isMounted) {
-                setIsLoading(false);
-                console.log("AuthContext: Loading set to false.");
-            }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("AuthContext: Auth state changed. Event:", event, "Session:", session ? "exists" : "null");
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // If user is logged in, fetch their profile with setTimeout to prevent deadlocks
+          if (session?.user) {
+            setTimeout(() => {
+              if (isMounted) fetchUserProfile(session.user.id);
+            }, 0);
+          }
         }
+      }
+    );
+
+    // THEN check for existing session
+    const checkSession = async () => {
+      console.log("AuthContext: Checking session...");
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("AuthContext: Error getting session:", error.message);
+        }
+
+        if (isMounted) {
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+          
+          if (data.session?.user) {
+            console.log("AuthContext: User authenticated, fetching profile...");
+            setTimeout(() => {
+              if (isMounted) fetchUserProfile(data.session.user.id);
+            }, 0);
+          }
+          setIsLoading(false);
+          console.log("AuthContext: Session check complete. User:", data.session?.user ? "exists" : "null");
+        }
+      } catch (catchError) {
+        console.error("AuthContext: Unexpected error during getSession:", catchError);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
-            console.log("AuthContext: Auth state changed. Event:", _event, "Session:", session);
-            if (isMounted) {
-                setSession(session);
-                setUser(session?.user ?? null);
-                
-                // If user is logged in, fetch their profile
-                if (session?.user && _event === 'SIGNED_IN') {
-                    console.log("AuthContext: User signed in, fetching profile...");
-                    setTimeout(() => {
-                        fetchUserProfile(session.user.id);
-                    }, 0);
-                }
-            }
-        }
-    );
-
     // Cleanup function
     return () => {
-        isMounted = false;
-        if (subscription) {
-            subscription.unsubscribe();
-            console.log("AuthContext: Unsubscribed from auth state changes.");
-        }
+      isMounted = false;
+      subscription.unsubscribe();
+      console.log("AuthContext: Unsubscribed from auth state changes.");
     };
   }, []); // Empty dependency array ensures this runs only once 
 
