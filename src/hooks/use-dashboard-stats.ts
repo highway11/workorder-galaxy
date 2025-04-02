@@ -183,7 +183,13 @@ export const useDashboardStats = () => {
   });
 
   // Extract work orders by location data for the chart
-  const workOrdersByLocationData = locationStats.data || [];
+  // Map the data to match the expected LocationData format with 'name' and 'count' properties
+  const workOrdersByLocationData = locationStats.data 
+    ? locationStats.data.map(location => ({
+        name: location.name,
+        count: location.totalWorkorders
+      }))
+    : [];
 
   return {
     workOrdersStats,

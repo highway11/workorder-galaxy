@@ -13,7 +13,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
-type LocationData = {
+export type LocationData = {
   name: string;
   count: number;
 }
