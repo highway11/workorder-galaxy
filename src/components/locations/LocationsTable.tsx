@@ -39,10 +39,9 @@ export function LocationsTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [userGroups, setUserGroups] = useState<string[]>([]);
-
+  
   // Fetch user's groups if they are a manager
-  const { data: userGroupsData } = useQuery({
+  const { data: userGroups = [] } = useQuery({
     queryKey: ['user-groups', user?.id],
     queryFn: async () => {
       if (!user || profile?.role !== 'manager') return [];
@@ -61,13 +60,6 @@ export function LocationsTable() {
     },
     enabled: !!user && profile?.role === 'manager'
   });
-
-  // Update userGroups state when data changes
-  useEffect(() => {
-    if (userGroupsData) {
-      setUserGroups(userGroupsData);
-    }
-  }, [userGroupsData]);
 
   // Handle sort click
   const handleSort = (field: SortField) => {
