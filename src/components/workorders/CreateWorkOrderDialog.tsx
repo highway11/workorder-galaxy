@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGroup } from "@/contexts/GroupContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CreateWorkOrderDialogProps {
   isOpen: boolean;
@@ -54,6 +56,7 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
   const { user } = useAuth();
   const { selectedGroupId } = useGroup();
   const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   // Initialize react-hook-form with the work order schema
   const form = useForm<WorkOrderFormValues>({
@@ -155,6 +158,228 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
     createWorkOrderMutation.mutate(values);
   };
 
+  // The form content to be used in both dialog and drawer
+  const formContent = (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="groupId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Department</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>Select the department for this work order</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      
+        <FormField
+          control={form.control}
+          name="item"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Item</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter work order item" {...field} />
+              </FormControl>
+              <FormDescription>
+                A short title for the work order
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter detailed description (optional)"
+                  className="resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-1 gap-4">
+          <FormField
+            control={form.control}
+            name="requestedBy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Requested By</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter requestor name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="glNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>G.L. # (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter GL number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <FormField
+          control={form.control}
+          name="locationId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>Select the location for this work order</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="completeBy"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Complete By</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                The date by which the work order should be completed
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className={cn("mt-6", isMobile ? "pb-4" : "")}>
+          <div className="flex gap-2 justify-end">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsOpen(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isLoading || createWorkOrderMutation.isPending}
+            >
+              {(isLoading || createWorkOrderMutation.isPending) ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Work Order"
+              )}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Form>
+  );
+
+  // Render different UI components based on device size
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
+        <DrawerContent className="px-4 max-h-[90vh] overflow-y-auto">
+          <DrawerHeader className="text-left px-0">
+            <DrawerTitle>Create New Work Order</DrawerTitle>
+            <DrawerDescription>
+              Fill out the form below to create a new work order.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-0">
+            {formContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="max-w-md sm:max-w-lg">
@@ -164,204 +389,7 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
             Fill out the form below to create a new work order.
           </DialogDescription>
         </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="groupId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>Select the department for this work order</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          
-            <FormField
-              control={form.control}
-              name="item"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Item</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter work order item" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    A short title for the work order
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter detailed description (optional)"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="requestedBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Requested By</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter requestor name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="glNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>G.L. # (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter GL number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>Select the location for this work order</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="completeBy"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Complete By</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormDescription>
-                    The date by which the work order should be completed
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter className="mt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsOpen(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isLoading || createWorkOrderMutation.isPending}
-              >
-                {(isLoading || createWorkOrderMutation.isPending) ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Work Order"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

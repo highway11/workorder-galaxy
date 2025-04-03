@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import WorkOrderStatusBadge from './WorkOrderStatusBadge';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
 
@@ -46,6 +47,7 @@ const WorkOrderTable = ({
   error,
   searchTerm 
 }: WorkOrderTableProps) => {
+  const isMobile = useIsMobile();
   
   const formatDate = (dateString: string) => {
     try {
@@ -88,6 +90,55 @@ const WorkOrderTable = ({
     );
   }
 
+  // Mobile optimized table view
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {filteredWorkOrders.map((order) => (
+          <div 
+            key={order.id} 
+            className="p-4 border rounded-md shadow-sm bg-white"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <Link 
+                to={`/workorders/${order.id}`}
+                className="text-primary hover:underline font-medium"
+              >
+                {order.wo_number || order.id.substring(0, 8)}
+              </Link>
+              <WorkOrderStatusBadge status={order.status} />
+            </div>
+            
+            <div className="space-y-1 text-sm mb-3">
+              <p className="font-medium">{order.item}</p>
+              <p className="text-muted-foreground">{order.location.name}</p>
+              <div className="flex justify-between mt-1">
+                <span className="text-xs text-muted-foreground">
+                  Due: {formatDate(order.complete_by)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  By: {order.requested_by}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => onDeleteClick(order.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop table view
   return (
     <div className="rounded-md border">
       <Table>

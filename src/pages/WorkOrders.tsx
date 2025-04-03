@@ -10,8 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroup } from "@/contexts/GroupContext";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
-// Import our new components
+// Import our components
 import WorkOrderSearch from '@/components/workorders/WorkOrderSearch';
 import WorkOrderTable, { WorkOrder } from '@/components/workorders/WorkOrderTable';
 import WorkOrderDeleteDialog from '@/components/workorders/WorkOrderDeleteDialog';
@@ -25,6 +27,7 @@ const WorkOrders = () => {
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const { selectedGroupId } = useGroup();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     document.title = "Work Orders | WorkOrder App";
@@ -206,14 +209,15 @@ const WorkOrders = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            className="px-2 sm:px-0"
           >
-            <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Work Orders</h1>
             <p className="text-muted-foreground">View and manage all work orders</p>
           </motion.div>
           
@@ -221,8 +225,9 @@ const WorkOrders = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            className="px-2 sm:px-0"
           >
-            <Button onClick={() => setIsNewWorkOrderOpen(true)}>
+            <Button onClick={() => setIsNewWorkOrderOpen(true)} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               New Work Order
             </Button>
@@ -233,18 +238,21 @@ const WorkOrders = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className={isMobile ? "px-0" : ""}
         >
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className={isMobile ? "border-x-0 rounded-none shadow-none" : ""}>
+            <CardHeader className={cn("pb-3", isMobile ? "px-4" : "")}>
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <CardTitle>All Work Orders</CardTitle>
-                <WorkOrderSearch 
-                  searchTerm={searchTerm} 
-                  setSearchTerm={setSearchTerm} 
-                />
+                <div className={isMobile ? "w-full" : ""}>
+                  <WorkOrderSearch 
+                    searchTerm={searchTerm} 
+                    setSearchTerm={setSearchTerm} 
+                  />
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isMobile ? "px-4" : ""}>
               <WorkOrderTable 
                 workOrders={workOrders || []}
                 onDeleteClick={handleDeleteClick}
