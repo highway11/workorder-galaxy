@@ -34,22 +34,19 @@ export function getSupabasePublicUrl(bucketName: string, filePath: string | null
 /**
  * Formats a number as currency (USD)
  */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2
-  }).format(amount);
+export function formatCurrency(value: number | null): string {
+  if (value === null) return "-";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
 }
 
 /**
- * Helper function to invalidate work order queries with proper dependencies
+ * Helper function to invalidate related queries for a workorder
  */
 export function invalidateWorkOrderQueries(queryClient: any, workOrderId: string) {
-  queryClient.invalidateQueries({ queryKey: ['workorder', workOrderId] });
   queryClient.invalidateQueries({ queryKey: ['workorder-details', workOrderId] });
   queryClient.invalidateQueries({ queryKey: ['workorder-totals', workOrderId] });
-  queryClient.invalidateQueries({ queryKey: ['workorder-schedules', workOrderId] });
-  queryClient.invalidateQueries({ queryKey: ['workorder-parent-schedule', workOrderId] });
-  queryClient.invalidateQueries({ queryKey: ['workorders'] });
+  queryClient.invalidateQueries({ queryKey: ['workorder', workOrderId] });
 }
