@@ -18,8 +18,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,28 +127,22 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId }: WorkOrderSche
         
         <div className="space-y-6 py-4">
           <div className="space-y-4">
-            <Label>Select Recurrence Schedule</Label>
-            <RadioGroup 
-              value={scheduleType} 
-              onValueChange={setScheduleType}
-              className="grid gap-4"
-            >
-              {scheduleTypes.map((schedule) => (
-                <div key={schedule.id} className="flex items-center">
-                  <RadioGroupItem value={schedule.id} id={schedule.id} className="peer sr-only" />
-                  <Label
-                    htmlFor={schedule.id}
-                    className="flex flex-col justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium">{schedule.name}</div>
-                      <CheckIcon className="h-5 w-5 text-primary opacity-0 peer-data-[state=checked]:opacity-100 [&:has([data-state=checked])]:opacity-100" />
+            <Label htmlFor="schedule-type">Select Recurrence Schedule</Label>
+            <Select value={scheduleType} onValueChange={setScheduleType}>
+              <SelectTrigger id="schedule-type">
+                <SelectValue placeholder="Select a schedule type" />
+              </SelectTrigger>
+              <SelectContent>
+                {scheduleTypes.map((schedule) => (
+                  <SelectItem key={schedule.id} value={schedule.id}>
+                    <div className="flex flex-col">
+                      <span>{schedule.name}</span>
+                      <span className="text-xs text-muted-foreground">{schedule.description}</span>
                     </div>
-                    <div className="text-sm text-muted-foreground">{schedule.description}</div>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
