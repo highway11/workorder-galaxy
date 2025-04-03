@@ -362,27 +362,11 @@ const CreateWorkOrderDialog = ({ isOpen, setIsOpen, onSuccess }: CreateWorkOrder
   );
 
   // Render different UI components based on device size
-  if (isMobile) {
-    return (
-      <Drawer open={isOpen} onOpenChange={setIsOpen}>
-        <DrawerContent className="px-4 max-h-[90vh] overflow-y-auto">
-          <DrawerHeader className="text-left px-0">
-            <DrawerTitle>Create New Work Order</DrawerTitle>
-            <DrawerDescription>
-              Fill out the form below to create a new work order.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-0">
-            {formContent}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-md sm:max-w-lg">
+      <DialogContent className="lg:max-w-screen-lg overflow-y-scroll max-h-screen">
         <DialogHeader>
           <DialogTitle>Create New Work Order</DialogTitle>
           <DialogDescription>

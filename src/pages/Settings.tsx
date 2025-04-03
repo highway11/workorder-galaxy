@@ -19,7 +19,7 @@ const Settings = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8 w-full px-4">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}

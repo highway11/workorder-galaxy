@@ -310,7 +310,7 @@ const WorkOrderDetail = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8 w-full px-4">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-2">

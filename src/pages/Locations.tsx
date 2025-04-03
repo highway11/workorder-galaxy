@@ -94,7 +94,7 @@ const Locations = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8 w-full px-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
