@@ -18,6 +18,8 @@ import WorkOrderEditForm from "./WorkOrderEditForm";
 import WorkOrderDetailButtons, { DetailType } from "./WorkOrderDetailButtons";
 import WorkOrderDetailForm from "./WorkOrderDetailForm";
 import WorkOrderDetailsList from "./WorkOrderDetailsList";
+import WorkOrderScheduleDialog from "./WorkOrderScheduleDialog";
+import WorkOrderScheduleInfo from "./WorkOrderScheduleInfo";
 
 type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
 
@@ -57,6 +59,7 @@ const WorkOrderDetail = () => {
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [closeDate, setCloseDate] = useState<Date>(new Date());
   const [activeDetailType, setActiveDetailType] = useState<DetailType | null>(null);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
 
   const { data: workOrder, isLoading, error } = useQuery({
     queryKey: ['workorder', id],
@@ -338,6 +341,13 @@ const WorkOrderDetail = () => {
             ) : (
               <>
                 <Button 
+                  onClick={() => setIsScheduleDialogOpen(true)}
+                  variant="outline"
+                >
+                  <ClockIcon className="mr-2 h-4 w-4" />
+                  Make Recurring
+                </Button>
+                <Button 
                   onClick={() => setIsEditDialogOpen(true)}
                   variant="outline"
                 >
@@ -353,6 +363,10 @@ const WorkOrderDetail = () => {
             )}
           </div>
         </div>
+        
+        {workOrder && (
+          <WorkOrderScheduleInfo workOrderId={workOrder.id} />
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
@@ -571,6 +585,13 @@ const WorkOrderDetail = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {workOrder && (
+        <WorkOrderScheduleDialog
+          isOpen={isScheduleDialogOpen}
+          onClose={() => setIsScheduleDialogOpen(false)}
+          workOrderId={workOrder.id}
+        />
+      )}
     </AppLayout>
   );
 };
