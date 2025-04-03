@@ -59,12 +59,14 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId }: WorkOrderSche
         throw new Error("You must be logged in to create a schedule");
       }
       
-      // Use a raw SQL call to the stored procedure instead of typed API
-      const { data, error } = await supabase.rpc('create_workorder_schedule', {
-        p_workorder_id: workOrderId,
-        p_schedule_type: scheduleType,
-        p_next_run: startDate.toISOString(),
-        p_created_by: user.id
+      // Use fetch to directly call the database function to bypass TypeScript limitations
+      const { data, error } = await supabase.functions.invoke('create-schedule', {
+        body: {
+          workorder_id: workOrderId,
+          schedule_type: scheduleType,
+          next_run: startDate.toISOString(),
+          created_by: user.id
+        }
       });
       
       if (error) {

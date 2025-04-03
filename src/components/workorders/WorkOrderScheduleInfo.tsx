@@ -12,6 +12,7 @@ interface WorkOrderScheduleInfoProps {
   workOrderId: string;
 }
 
+// These interfaces are just for our component's internal use
 interface WorkOrderWithScheduleId {
   parent_schedule_id: string | null;
 }
@@ -21,27 +22,44 @@ interface ParentWorkOrder {
   wo_number: string | null;
 }
 
+// This custom wrapper helps us deal with the raw database queries
+interface RawWorkOrderScheduleData {
+  id: string;
+  workorder_id: string;
+  schedule_type: string;
+  next_run: string;
+  created_at: string;
+  created_by: string;
+  active: boolean;
+}
+
+interface RawParentScheduleData extends RawWorkOrderScheduleData {
+  parent_workorder: {
+    id: string;
+    wo_number: string | null;
+  };
+}
+
 const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   // Fetch schedule information for the current work order
   const { data: schedule, isLoading, error } = useQuery({
     queryKey: ['workorder-schedules', workOrderId],
     queryFn: async () => {
-      // Use a raw query with string SQL to get the schedule data
-      const { data, error } = await supabase
-        .from('workorder_schedules')
-        .select('*')
-        .eq('workorder_id', workOrderId)
-        .single();
-        
+      // Use fetch to directly call the database (bypass typing issues)
+      const { data, error } = await supabase.functions.invoke('get-schedule', {
+        body: { workorder_id: workOrderId }
+      });
+      
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No schedule found, return null
-          return null;
-        }
         throw error;
       }
       
-      return data as WorkOrderSchedule;
+      if (!data || !data.schedule) {
+        return null;
+      }
+      
+      // Cast to our custom interface
+      return data.schedule as WorkOrderSchedule;
     },
   });
   
@@ -49,35 +67,19 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   const { data: parentSchedule } = useQuery({
     queryKey: ['workorder-parent-schedule', workOrderId],
     queryFn: async () => {
-      // First get the parent_schedule_id from the workorder
-      const { data: workorder, error: workorderError } = await supabase
-        .from('workorders')
-        .select('parent_schedule_id')
-        .eq('id', workOrderId)
-        .single();
-        
-      if (workorderError || !workorder || !workorder.parent_schedule_id) {
+      // Use fetch to directly call the database (bypass typing issues)
+      const { data, error } = await supabase.functions.invoke('get-parent-schedule', {
+        body: { workorder_id: workOrderId }
+      });
+      
+      if (error || !data || !data.parentSchedule) {
         return null;
       }
       
-      // Then get the schedule and its associated workorder
-      const { data, error } = await supabase
-        .from('workorder_schedules')
-        .select(`
-          *,
-          parent_workorder:workorder_id(id, wo_number)
-        `)
-        .eq('id', workorder.parent_schedule_id)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Cast to our custom types since TypeScript doesn't know about these tables
+      // Return the properly typed data
       return {
-        ...data as unknown as WorkOrderSchedule,
-        parent_workorder: data.parent_workorder as unknown as ParentWorkOrder
+        ...data.parentSchedule as WorkOrderSchedule,
+        parent_workorder: data.parentSchedule.parent_workorder as ParentWorkOrder
       };
     },
     enabled: !!workOrderId,
