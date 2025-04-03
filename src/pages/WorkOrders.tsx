@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -209,13 +208,12 @@ const WorkOrders = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-4 sm:space-y-8">
+      <div className="space-y-4 sm:space-y-8 w-full px-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="px-2 sm:px-0"
           >
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Work Orders</h1>
             <p className="text-muted-foreground">View and manage all work orders</p>
@@ -225,7 +223,6 @@ const WorkOrders = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="px-2 sm:px-0"
           >
             <Button onClick={() => setIsNewWorkOrderOpen(true)} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
@@ -238,9 +235,9 @@ const WorkOrders = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className={isMobile ? "px-0" : ""}
+          className="w-full"
         >
-          <Card className={isMobile ? "border-x-0 rounded-none shadow-none" : ""}>
+          <Card className={cn("w-full max-w-full", isMobile ? "border-x-0 rounded-none shadow-none" : "")}>
             <CardHeader className={cn("pb-3", isMobile ? "px-4" : "")}>
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                 <CardTitle>All Work Orders</CardTitle>
@@ -252,7 +249,7 @@ const WorkOrders = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className={isMobile ? "px-4" : ""}>
+            <CardContent className={cn("p-0 sm:p-6", isMobile ? "" : "")}>
               <WorkOrderTable 
                 workOrders={workOrders || []}
                 onDeleteClick={handleDeleteClick}

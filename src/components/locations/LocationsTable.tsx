@@ -19,6 +19,7 @@ import { useGroup } from "@/contexts/GroupContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type LocationStats = {
   id: string;
@@ -39,6 +40,7 @@ export function LocationsTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const isMobile = useIsMobile();
   
   // Fetch user's groups if they are a manager
   const { data: userGroups = [] } = useQuery({
@@ -137,8 +139,74 @@ export function LocationsTable() {
     return <div className="py-10 text-center text-destructive">Error loading locations</div>;
   }
 
+  // Mobile view
+  if (isMobile) {
+    return (
+      <div className="space-y-4 px-4 w-full">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search locations..."
+            className="pl-8 w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        {sortedAndFilteredLocations.length === 0 ? (
+          <div className="py-10 text-center">
+            {searchTerm ? 'No locations match your search' : 'No locations found'}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sortedAndFilteredLocations.map((location) => (
+              <div key={location.id} className="p-4 border rounded-md shadow-sm bg-white">
+                <Link 
+                  to={`/locations/${location.id}`} 
+                  className="flex items-start space-x-3 font-medium hover:underline"
+                >
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <span>{location.name}</span>
+                </Link>
+                
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">Total:</div>
+                    <div>{location.totalWorkorders}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Open:</div>
+                    <div>
+                      {location.openWorkorders > 0 ? (
+                        <Badge variant="secondary">{location.openWorkorders}</Badge>
+                      ) : (
+                        '0'
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-2 mt-1">
+                    <div className="text-muted-foreground">Last Update:</div>
+                    <div>
+                      {location.lastWorkorderDate 
+                        ? format(new Date(location.lastWorkorderDate), 'MMM d, yyyy')
+                        : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop view
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full px-4 sm:px-0">
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
@@ -150,7 +218,7 @@ export function LocationsTable() {
         />
       </div>
       
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <ScrollArea className="h-[calc(100vh-280px)]">
           <Table>
             <TableHeader className="bg-muted/50">

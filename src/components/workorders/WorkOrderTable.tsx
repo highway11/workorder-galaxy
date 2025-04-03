@@ -93,11 +93,11 @@ const WorkOrderTable = ({
   // Mobile optimized table view
   if (isMobile) {
     return (
-      <div className="space-y-4">
+      <div className="w-full space-y-4 px-4">
         {filteredWorkOrders.map((order) => (
           <div 
             key={order.id} 
-            className="p-4 border rounded-md shadow-sm bg-white"
+            className="p-4 border rounded-md shadow-sm bg-white w-full"
           >
             <div className="flex justify-between items-start mb-2">
               <Link 
@@ -140,7 +140,7 @@ const WorkOrderTable = ({
 
   // Desktop table view
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border w-full overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>

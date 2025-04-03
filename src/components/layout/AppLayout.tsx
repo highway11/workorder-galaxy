@@ -15,7 +15,7 @@ interface AppLayoutProps {
 const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
-      <div className="relative flex min-h-screen">
+      <div className="relative flex min-h-screen w-full">
         <Sidebar className="bg-background border-r border-border">
           <SidebarHeader>
             <div className="h-14 flex items-center px-4">
@@ -36,9 +36,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             </div>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset>
+        <SidebarInset className="w-full">
           <AppHeader />
-          <main className="flex-1 px-4 md:px-8 py-4 md:py-8 w-full">
+          <main className="flex-1 px-0 py-4 w-full max-w-full overflow-hidden">
             {children}
           </main>
         </SidebarInset>
