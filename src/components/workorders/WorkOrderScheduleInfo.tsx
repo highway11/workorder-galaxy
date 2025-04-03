@@ -12,12 +12,21 @@ interface WorkOrderScheduleInfoProps {
   workOrderId: string;
 }
 
+interface WorkOrderWithScheduleId {
+  parent_schedule_id: string | null;
+}
+
+interface ParentWorkOrder {
+  id: string;
+  wo_number: string | null;
+}
+
 const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   // Fetch schedule information for the current work order
   const { data: schedule, isLoading, error } = useQuery({
     queryKey: ['workorder-schedules', workOrderId],
     queryFn: async () => {
-      // We need to use a different approach since TypeScript doesn't know about the workorder_schedules table yet
+      // Use a raw query with string SQL to get the schedule data
       const { data, error } = await supabase
         .from('workorder_schedules')
         .select('*')
@@ -40,6 +49,7 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   const { data: parentSchedule } = useQuery({
     queryKey: ['workorder-parent-schedule', workOrderId],
     queryFn: async () => {
+      // First get the parent_schedule_id from the workorder
       const { data: workorder, error: workorderError } = await supabase
         .from('workorders')
         .select('parent_schedule_id')
@@ -50,6 +60,7 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         return null;
       }
       
+      // Then get the schedule and its associated workorder
       const { data, error } = await supabase
         .from('workorder_schedules')
         .select(`
@@ -63,11 +74,10 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         throw error;
       }
       
-      return data as WorkOrderSchedule & {
-        parent_workorder: {
-          id: string;
-          wo_number: string | null;
-        }
+      // Cast to our custom types since TypeScript doesn't know about these tables
+      return {
+        ...data as unknown as WorkOrderSchedule,
+        parent_workorder: data.parent_workorder as unknown as ParentWorkOrder
       };
     },
     enabled: !!workOrderId,
