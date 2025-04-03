@@ -12,15 +12,8 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import {
+import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -31,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { scheduleTypeNames, scheduleIntervals } from "@/lib/schedule-types";
 
 // Schedule types available for recurring workorders
 const scheduleTypes = [
@@ -65,18 +59,14 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId }: WorkOrderSche
         throw new Error("You must be logged in to create a schedule");
       }
       
-      const { data, error } = await supabase
-        .from("workorder_schedules")
-        .insert({
-          workorder_id: workOrderId,
-          schedule_type: scheduleType,
-          next_run: startDate.toISOString(),
-          created_by: user.id,
-          active: true
-        })
-        .select()
-        .single();
-        
+      // Using raw SQL insert instead of the typed API since TypeScript doesn't know about workorder_schedules yet
+      const { data, error } = await supabase.rpc('create_workorder_schedule', {
+        p_workorder_id: workOrderId,
+        p_schedule_type: scheduleType,
+        p_next_run: startDate.toISOString(),
+        p_created_by: user.id
+      });
+      
       if (error) {
         console.error("Error creating schedule:", error);
         throw error;

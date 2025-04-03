@@ -6,44 +6,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { WorkOrderSchedule, scheduleTypeNames, scheduleIntervals } from "@/lib/schedule-types";
 
 interface WorkOrderScheduleInfoProps {
   workOrderId: string;
 }
-
-// Schedule type mapping for display names
-const scheduleTypeNames: Record<string, string> = {
-  'weekly': 'Weekly Maintenance',
-  '3-weeks': '3 Weeks',
-  'monthly': 'Monthly Maintenance',
-  'bi-monthly': 'Bi-Monthly Maintenance',
-  'quarterly': 'Quarterly Maintenance',
-  'semi-annual': 'Semi Annual Maintenance',
-  'annual': 'Annual Maintenance',
-  'bi-annual': 'Bi-Annual Maintenance',
-  '5-year': '5 Year Maintenance',
-  '6-year': '6 Year Maintenance',
-};
-
-// Schedule interval descriptions
-const scheduleIntervals: Record<string, string> = {
-  'weekly': 'Every 7 Days',
-  '3-weeks': 'Every 21 Days',
-  'monthly': 'Every Month',
-  'bi-monthly': 'Every 2 Months',
-  'quarterly': 'Every 3 Months',
-  'semi-annual': 'Every 6 Months',
-  'annual': 'Every Year',
-  'bi-annual': 'Every 2 Years',
-  '5-year': 'Every 5 Years',
-  '6-year': 'Every 6 Years',
-};
 
 const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   // Fetch schedule information for the current work order
   const { data: schedule, isLoading, error } = useQuery({
     queryKey: ['workorder-schedules', workOrderId],
     queryFn: async () => {
+      // We need to use a different approach since TypeScript doesn't know about the workorder_schedules table yet
       const { data, error } = await supabase
         .from('workorder_schedules')
         .select('*')
@@ -58,7 +32,7 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         throw error;
       }
       
-      return data;
+      return data as WorkOrderSchedule;
     },
   });
   
@@ -72,13 +46,16 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         .eq('id', workOrderId)
         .single();
         
-      if (workorderError || !workorder.parent_schedule_id) {
+      if (workorderError || !workorder || !workorder.parent_schedule_id) {
         return null;
       }
       
       const { data, error } = await supabase
         .from('workorder_schedules')
-        .select('*, parent_workorder:workorder_id(id, wo_number)')
+        .select(`
+          *,
+          parent_workorder:workorder_id(id, wo_number)
+        `)
         .eq('id', workorder.parent_schedule_id)
         .single();
         
@@ -86,7 +63,12 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         throw error;
       }
       
-      return data;
+      return data as WorkOrderSchedule & {
+        parent_workorder: {
+          id: string;
+          wo_number: string | null;
+        }
+      };
     },
     enabled: !!workOrderId,
   });
