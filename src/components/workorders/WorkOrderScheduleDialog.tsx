@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -24,7 +25,7 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
   const createScheduleMutation = useMutation({
     mutationFn: async (scheduleType: string) => {
       const { data, error } = await supabase.functions.invoke('create-workorder-schedule', {
-        body: { workorderId, scheduleType },
+        body: { workorderId: workOrderId, scheduleType },
       });
       
       if (error) {
