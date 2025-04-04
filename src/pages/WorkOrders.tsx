@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -57,7 +58,8 @@ const WorkOrders = () => {
           complete_by, 
           status,
           gl_number,
-          group_id
+          group_id,
+          parent_schedule_id
         `);
       
       // Apply different filters based on user role

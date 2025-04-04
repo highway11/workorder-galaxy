@@ -1,7 +1,7 @@
 
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -30,6 +30,7 @@ export type WorkOrder = {
   complete_by: string;
   status: WorkOrderStatus;
   gl_number: string | null;
+  parent_schedule_id?: string | null;
 };
 
 interface WorkOrderTableProps {
@@ -100,12 +101,17 @@ const WorkOrderTable = ({
             className="p-4 border rounded-md shadow-sm bg-white w-full"
           >
             <div className="flex justify-between items-start mb-2">
-              <Link 
-                to={`/workorders/${order.id}`}
-                className="text-primary hover:underline font-medium"
-              >
-                {order.wo_number || order.id.substring(0, 8)}
-              </Link>
+              <div className="flex items-center gap-1">
+                <Link 
+                  to={`/workorders/${order.id}`}
+                  className="text-primary hover:underline font-medium"
+                >
+                  {order.wo_number || order.id.substring(0, 8)}
+                </Link>
+                {order.parent_schedule_id && (
+                  <Repeat className="h-4 w-4 text-blue-500" title="Recurring work order" />
+                )}
+              </div>
               <WorkOrderStatusBadge status={order.status} />
             </div>
             
@@ -158,12 +164,17 @@ const WorkOrderTable = ({
           {filteredWorkOrders.map((order) => (
             <TableRow key={order.id} className="hover:bg-muted/50">
               <TableCell className="font-medium">
-                <Link 
-                  to={`/workorders/${order.id}`}
-                  className="text-primary hover:underline"
-                >
-                  {order.wo_number || order.id.substring(0, 8)}
-                </Link>
+                <div className="flex items-center gap-1">
+                  <Link 
+                    to={`/workorders/${order.id}`}
+                    className="text-primary hover:underline"
+                  >
+                    {order.wo_number || order.id.substring(0, 8)}
+                  </Link>
+                  {order.parent_schedule_id && (
+                    <Repeat className="h-4 w-4 text-blue-500" title="Recurring work order" />
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col">
