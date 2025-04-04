@@ -25,11 +25,55 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
   
   const createScheduleMutation = useMutation({
     mutationFn: async (scheduleType: string) => {
-      // Call the database function directly
-      const { data, error } = await supabase.rpc('create_workorder_schedule', {
-        p_workorder_id: workOrderId,
-        p_schedule_type: scheduleType,
-      });
+      // Calculate next run date based on schedule type
+      const now = new Date();
+      let nextRun = new Date(now);
+      
+      switch (scheduleType) {
+        case 'weekly':
+          nextRun.setDate(nextRun.getDate() + 7);
+          break;
+        case '3week':
+          nextRun.setDate(nextRun.getDate() + 21);
+          break;
+        case 'monthly':
+          nextRun.setMonth(nextRun.getMonth() + 1);
+          break;
+        case 'bimonthly':
+          nextRun.setMonth(nextRun.getMonth() + 2);
+          break;
+        case 'quarterly':
+          nextRun.setMonth(nextRun.getMonth() + 3);
+          break;
+        case 'semiannual':
+          nextRun.setMonth(nextRun.getMonth() + 6);
+          break;
+        case 'annual':
+          nextRun.setFullYear(nextRun.getFullYear() + 1);
+          break;
+        case 'biannual':
+          nextRun.setFullYear(nextRun.getFullYear() + 2);
+          break;
+        case '5year':
+          nextRun.setFullYear(nextRun.getFullYear() + 5);
+          break;
+        case '6year':
+          nextRun.setFullYear(nextRun.getFullYear() + 6);
+          break;
+        default:
+          nextRun.setMonth(nextRun.getMonth() + 1);
+      }
+      
+      // Insert directly into workorder_schedules table
+      const { data, error } = await supabase
+        .from('workorder_schedules')
+        .insert([{
+          workorder_id: workOrderId,
+          schedule_type: scheduleType,
+          next_run: nextRun.toISOString(),
+          active: true
+        }])
+        .select();
       
       if (error) {
         throw new Error(error.message);

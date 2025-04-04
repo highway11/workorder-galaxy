@@ -38,11 +38,55 @@ serve(async (req) => {
     
     console.log(`Creating schedule for workorder ${workorderId} with type ${scheduleType}`);
     
-    // Call the create_workorder_schedule function using a direct query
-    const { data, error } = await supabase.rpc('create_workorder_schedule', {
-      p_workorder_id: workorderId,
-      p_schedule_type: scheduleType,
-    });
+    // Calculate next run date based on schedule type
+    const now = new Date();
+    let nextRun = new Date(now);
+    
+    switch (scheduleType) {
+      case 'weekly':
+        nextRun.setDate(nextRun.getDate() + 7);
+        break;
+      case '3week':
+        nextRun.setDate(nextRun.getDate() + 21);
+        break;
+      case 'monthly':
+        nextRun.setMonth(nextRun.getMonth() + 1);
+        break;
+      case 'bimonthly':
+        nextRun.setMonth(nextRun.getMonth() + 2);
+        break;
+      case 'quarterly':
+        nextRun.setMonth(nextRun.getMonth() + 3);
+        break;
+      case 'semiannual':
+        nextRun.setMonth(nextRun.getMonth() + 6);
+        break;
+      case 'annual':
+        nextRun.setFullYear(nextRun.getFullYear() + 1);
+        break;
+      case 'biannual':
+        nextRun.setFullYear(nextRun.getFullYear() + 2);
+        break;
+      case '5year':
+        nextRun.setFullYear(nextRun.getFullYear() + 5);
+        break;
+      case '6year':
+        nextRun.setFullYear(nextRun.getFullYear() + 6);
+        break;
+      default:
+        nextRun.setMonth(nextRun.getMonth() + 1);
+    }
+    
+    // Insert directly into workorder_schedules table
+    const { data, error } = await supabase
+      .from('workorder_schedules')
+      .insert([{
+        workorder_id: workorderId,
+        schedule_type: scheduleType,
+        next_run: nextRun.toISOString(),
+        active: true
+      }])
+      .select();
     
     if (error) {
       console.error("Error creating work order schedule:", error);
