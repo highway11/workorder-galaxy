@@ -3,6 +3,7 @@ import { Database as OriginalDatabase } from '@/integrations/supabase/types';
 
 // Extend the Database type to include workorder_schedules table
 declare module '@/integrations/supabase/types' {
+  // Define our extension tables
   interface ExtendedTables {
     workorder_schedules: {
       Row: {
@@ -44,8 +45,8 @@ declare module '@/integrations/supabase/types' {
     };
   }
 
-  // Instead of redeclaring Database, we augment it
-  interface Database extends OriginalDatabase {
+  // Extend the original Database interface
+  export interface Database extends OriginalDatabase {
     public: {
       Tables: OriginalDatabase['public']['Tables'] & ExtendedTables;
       Views: OriginalDatabase['public']['Views'];
