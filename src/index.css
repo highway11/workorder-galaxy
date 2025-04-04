@@ -132,6 +132,15 @@
   h4 {
     @apply text-lg sm:text-xl;
   }
+
+  /* Form elements */
+  label {
+    @apply block font-medium text-sm mb-1.5 text-foreground;
+  }
+
+  .form-label-description {
+    @apply text-xs text-muted-foreground mt-1;
+  }
   
   /* Page transitions */
   .page-transition-enter {
@@ -166,6 +175,19 @@
   
   .input-focus-ring {
     @apply focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Form styling */
+  .form-group {
+    @apply mb-4;
+  }
+  
+  .form-description {
+    @apply text-xs text-muted-foreground mt-1;
+  }
+
+  .form-error {
+    @apply text-sm text-destructive mt-1;
   }
   
   /* Sidebar specific styles */
