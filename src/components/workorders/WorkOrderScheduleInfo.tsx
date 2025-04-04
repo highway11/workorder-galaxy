@@ -1,14 +1,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, ClockIcon, XCircleIcon } from "lucide-react";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getScheduleTypeName } from "@/lib/utils";
+import { WorkOrderScheduleDisplay } from "./schedule/WorkOrderScheduleDisplay";
+import { WorkOrderScheduleDeactivate } from "./schedule/WorkOrderScheduleDeactivate";
+import { WorkOrderScheduleMessage } from "./schedule/WorkOrderScheduleMessage";
 
-interface WorkOrderScheduleInfoProps {
+export interface WorkOrderScheduleInfoProps {
   workOrderId: string;
 }
 
@@ -20,6 +18,11 @@ export interface WorkOrderSchedule {
   active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface ScheduleData {
+  type: 'has-schedule' | 'from-schedule' | 'no-schedule';
+  schedule?: WorkOrderSchedule;
 }
 
 const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
@@ -45,7 +48,7 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
 
       // If there's a schedule, return it
       if (schedule) {
-        return { type: 'has-schedule', schedule };
+        return { type: 'has-schedule', schedule } as ScheduleData;
       }
       
       // Check if this work order was created from a schedule
@@ -76,12 +79,12 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
         const parentSchedule = parentScheduleData.length > 0 ? parentScheduleData[0] : null;
         
         if (parentSchedule) {
-          return { type: 'from-schedule', schedule: parentSchedule };
+          return { type: 'from-schedule', schedule: parentSchedule } as ScheduleData;
         }
       }
       
       // If no schedule is found
-      return { type: 'no-schedule' };
+      return { type: 'no-schedule' } as ScheduleData;
     },
     enabled: !!workOrderId
   });
@@ -127,71 +130,35 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   if (scheduleData.type === 'no-schedule') {
     return null;
   }
-  
-  const schedule = scheduleData.schedule as WorkOrderSchedule;
-  const isFromSchedule = scheduleData.type === 'from-schedule';
-  const isHasSchedule = scheduleData.type === 'has-schedule';
+
+  if (!scheduleData.schedule) {
+    return null;
+  }
   
   const handleDeactivate = () => {
     if (window.confirm("Are you sure you want to deactivate this schedule? This will stop future work orders from being created automatically.")) {
-      deactivateScheduleMutation.mutate(schedule.id);
+      deactivateScheduleMutation.mutate(scheduleData.schedule!.id);
     }
   };
   
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl flex items-center">
-          <ClockIcon className="h-5 w-5 mr-2 text-muted-foreground" />
-          {isFromSchedule ? "Created from Schedule" : "Recurring Schedule"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-start gap-3">
-          <ClockIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Schedule Type</p>
-            <p>{getScheduleTypeName(schedule.schedule_type)}</p>
-          </div>
-        </div>
-        
-        {isHasSchedule && (
-          <div className="flex items-start gap-3">
-            <CalendarIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Next Creation Date</p>
-              <p>{format(new Date(schedule.next_run), 'PPP')}</p>
-            </div>
-          </div>
-        )}
-        
-        {isHasSchedule && schedule.active && (
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              className="text-destructive hover:text-destructive" 
-              onClick={handleDeactivate}
-              disabled={deactivateScheduleMutation.isPending}
-            >
-              <XCircleIcon className="h-4 w-4 mr-2" />
-              {deactivateScheduleMutation.isPending ? "Deactivating..." : "Deactivate Schedule"}
-            </Button>
-          </div>
-        )}
-        
-        {isHasSchedule && !schedule.active && (
-          <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-            This schedule is currently inactive. No new work orders will be created.
-          </div>
-        )}
-        
-        {isFromSchedule && (
-          <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-            This work order was automatically created based on a recurring schedule.
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <WorkOrderScheduleDisplay
+      scheduleData={scheduleData}
+      renderDeactivateButton={() => (
+        scheduleData.type === 'has-schedule' && scheduleData.schedule?.active && (
+          <WorkOrderScheduleDeactivate 
+            onDeactivate={handleDeactivate}
+            isPending={deactivateScheduleMutation.isPending}
+          />
+        )
+      )}
+      renderStatusMessage={() => (
+        <WorkOrderScheduleMessage 
+          scheduleType={scheduleData.type}
+          isActive={scheduleData.schedule?.active}
+        />
+      )}
+    />
   );
 };
 
