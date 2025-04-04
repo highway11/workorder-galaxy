@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon, PlusCircle, CalculatorIcon } from "lucide-react";
+import { CalendarIcon, FileTextIcon, MapPinIcon, UserIcon, TagIcon, ClockIcon, PlusCircle, CalculatorIcon, RepeatIcon } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ import WorkOrderEditForm from "./WorkOrderEditForm";
 import WorkOrderDetailButtons, { DetailType } from "./WorkOrderDetailButtons";
 import WorkOrderDetailForm from "./WorkOrderDetailForm";
 import WorkOrderDetailsList from "./WorkOrderDetailsList";
+import WorkOrderScheduleDialog from "./WorkOrderScheduleDialog";
+import WorkOrderScheduleInfo from "./WorkOrderScheduleInfo";
 
 type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
 
@@ -55,6 +57,7 @@ const WorkOrderDetail = () => {
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [closeDate, setCloseDate] = useState<Date>(new Date());
   const [activeDetailType, setActiveDetailType] = useState<DetailType | null>(null);
 
@@ -134,6 +137,28 @@ const WorkOrderDetail = () => {
     },
     enabled: !!id,
     staleTime: 0,
+  });
+
+  const { data: hasSchedule } = useQuery({
+    queryKey: ['workorder-has-schedule', id],
+    queryFn: async () => {
+      if (!id) return false;
+      
+      const { data, error } = await supabase
+        .from('workorder_schedules')
+        .select('id')
+        .eq('workorder_id', id)
+        .eq('active', true)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error checking for work order schedule:", error);
+        return false;
+      }
+      
+      return !!data;
+    },
+    enabled: !!id
   });
 
   const closeWorkOrderMutation = useMutation({
@@ -343,6 +368,18 @@ const WorkOrderDetail = () => {
                 >
                   Edit
                 </Button>
+                
+                {!hasSchedule && (
+                  <Button 
+                    onClick={() => setIsScheduleDialogOpen(true)}
+                    variant="outline"
+                    className="gap-1"
+                  >
+                    <RepeatIcon className="h-4 w-4" />
+                    Make Recurring
+                  </Button>
+                )}
+                
                 <Button 
                   onClick={() => setIsCloseDialogOpen(true)}
                   variant="secondary"
@@ -353,6 +390,8 @@ const WorkOrderDetail = () => {
             )}
           </div>
         </div>
+        
+        <WorkOrderScheduleInfo workOrderId={workOrder.id} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
@@ -504,6 +543,19 @@ const WorkOrderDetail = () => {
           <WorkOrderDetailsList workOrderId={workOrder.id} />
         </div>
       </div>
+
+      <WorkOrderScheduleDialog 
+        isOpen={isScheduleDialogOpen}
+        onClose={() => setIsScheduleDialogOpen(false)}
+        workOrderId={workOrder?.id || ''}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['workorder-has-schedule', id] });
+          toast({
+            title: "Schedule Created",
+            description: "This work order will now be automatically recreated on schedule."
+          });
+        }}
+      />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

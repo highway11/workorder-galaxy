@@ -50,3 +50,41 @@ export function invalidateWorkOrderQueries(queryClient: any, workOrderId: string
   queryClient.invalidateQueries({ queryKey: ['workorder-totals', workOrderId] });
   queryClient.invalidateQueries({ queryKey: ['workorder', workOrderId] });
 }
+
+/**
+ * Returns a human-readable name for a schedule type
+ */
+export function getScheduleTypeName(scheduleType: string): string {
+  const scheduleNames: Record<string, string> = {
+    'weekly': 'Weekly Maintenance (Every 7 Days)',
+    '3week': '3 Weeks Maintenance (Every 21 Days)',
+    'monthly': 'Monthly Maintenance (Every Month)',
+    'bimonthly': 'Bi-Monthly Maintenance (Every 2 Months)',
+    'quarterly': 'Quarterly Maintenance (Every 3 Months)',
+    'semiannual': 'Semi-Annual Maintenance (Every 6 Months)',
+    'annual': 'Annual Maintenance (Every Year)',
+    'biannual': 'Bi-Annual Maintenance (Every 2 Years)',
+    '5year': '5 Year Maintenance (Every 5 Years)',
+    '6year': '6 Year Maintenance (Every 6 Years)'
+  };
+  
+  return scheduleNames[scheduleType] || scheduleType;
+}
+
+/**
+ * Returns all available schedule types
+ */
+export function getScheduleTypes(): { value: string; label: string }[] {
+  return [
+    { value: 'weekly', label: 'Weekly Maintenance (Every 7 Days)' },
+    { value: '3week', label: '3 Weeks Maintenance (Every 21 Days)' },
+    { value: 'monthly', label: 'Monthly Maintenance (Every Month)' },
+    { value: 'bimonthly', label: 'Bi-Monthly Maintenance (Every 2 Months)' },
+    { value: 'quarterly', label: 'Quarterly Maintenance (Every 3 Months)' },
+    { value: 'semiannual', label: 'Semi-Annual Maintenance (Every 6 Months)' },
+    { value: 'annual', label: 'Annual Maintenance (Every Year)' },
+    { value: 'biannual', label: 'Bi-Annual Maintenance (Every 2 Years)' },
+    { value: '5year', label: '5 Year Maintenance (Every 5 Years)' },
+    { value: '6year', label: '6 Year Maintenance (Every 6 Years)' }
+  ];
+}

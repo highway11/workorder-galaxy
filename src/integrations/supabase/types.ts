@@ -182,6 +182,44 @@ export type Database = {
           },
         ]
       }
+      workorder_schedules: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          next_run: string
+          schedule_type: string
+          updated_at: string
+          workorder_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          next_run: string
+          schedule_type: string
+          updated_at?: string
+          workorder_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          next_run?: string
+          schedule_type?: string
+          updated_at?: string
+          workorder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workorder_schedules_workorder_id_fkey"
+            columns: ["workorder_id"]
+            isOneToOne: false
+            referencedRelation: "workorders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workorders: {
         Row: {
           closed_on: string | null
@@ -195,6 +233,7 @@ export type Database = {
           id: string
           item: string
           location_id: string
+          parent_schedule_id: string | null
           requested_by: string
           status: string
           wo_number: string | null
@@ -211,6 +250,7 @@ export type Database = {
           id?: string
           item: string
           location_id: string
+          parent_schedule_id?: string | null
           requested_by: string
           status?: string
           wo_number?: string | null
@@ -227,6 +267,7 @@ export type Database = {
           id?: string
           item?: string
           location_id?: string
+          parent_schedule_id?: string | null
           requested_by?: string
           status?: string
           wo_number?: string | null
@@ -253,6 +294,13 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workorders_parent_schedule_id_fkey"
+            columns: ["parent_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "workorder_schedules"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -260,6 +308,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_workorder_schedule: {
+        Args: {
+          p_workorder_id: string
+          p_schedule_type: string
+        }
+        Returns: string
+      }
       is_admin: {
         Args: {
           user_id: string

@@ -33,3 +33,6 @@ verify_jwt = true
 
 [functions.send-workorder-notification]
 verify_jwt = true
+
+[functions.check-scheduled-workorders]
+verify_jwt = false
