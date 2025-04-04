@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
@@ -102,6 +101,27 @@ const WorkOrders = () => {
       
       console.log("Fetched work orders:", data);
       return (data || []) as WorkOrder[];
+    },
+    enabled: !!user
+  });
+
+  const { data: schedules } = useQuery({
+    queryKey: ['workorder-schedules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workorder_schedules')
+        .select('workorder_id');
+      
+      if (error) {
+        console.error("Error fetching work order schedules:", error);
+        throw new Error(error.message);
+      }
+      
+      // Convert to a set of workorder_ids for easy lookup
+      const scheduledWorkOrderIds = new Set(data.map(item => item.workorder_id));
+      console.log("Workorders with schedules:", scheduledWorkOrderIds);
+      
+      return scheduledWorkOrderIds;
     },
     enabled: !!user
   });
@@ -258,6 +278,7 @@ const WorkOrders = () => {
                 isLoading={isLoading}
                 error={error instanceof Error ? error : null}
                 searchTerm={searchTerm}
+                scheduleWorkOrderIds={schedules}
               />
             </CardContent>
           </Card>

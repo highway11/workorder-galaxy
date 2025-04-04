@@ -45,6 +45,7 @@ interface WorkOrderTableProps {
   isLoading: boolean;
   error: Error | null;
   searchTerm: string;
+  scheduleWorkOrderIds?: Set<string>; // Added this new prop
 }
 
 const WorkOrderTable = ({ 
@@ -52,7 +53,8 @@ const WorkOrderTable = ({
   onDeleteClick, 
   isLoading, 
   error,
-  searchTerm 
+  searchTerm,
+  scheduleWorkOrderIds = new Set() // Default to empty set
 }: WorkOrderTableProps) => {
   const isMobile = useIsMobile();
   
@@ -63,6 +65,11 @@ const WorkOrderTable = ({
       console.error("Invalid date:", dateString);
       return dateString;
     }
+  };
+
+  // Check if a work order is recurring (has parent_schedule_id or is a schedule itself)
+  const isRecurringWorkOrder = (workOrder: WorkOrder): boolean => {
+    return !!workOrder.parent_schedule_id || scheduleWorkOrderIds.has(workOrder.id);
   };
 
   const filteredWorkOrders = workOrders?.filter(order => {
@@ -114,7 +121,7 @@ const WorkOrderTable = ({
                 >
                   {order.wo_number || order.id.substring(0, 8)}
                 </Link>
-                {order.parent_schedule_id && (
+                {isRecurringWorkOrder(order) && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -186,7 +193,7 @@ const WorkOrderTable = ({
                   >
                     {order.wo_number || order.id.substring(0, 8)}
                   </Link>
-                  {order.parent_schedule_id && (
+                  {isRecurringWorkOrder(order) && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
