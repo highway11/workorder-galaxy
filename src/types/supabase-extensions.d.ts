@@ -44,7 +44,8 @@ declare module '@/integrations/supabase/types' {
     };
   }
 
-  export interface Database extends OriginalDatabase {
+  // Instead of redeclaring Database, we augment it
+  interface Database extends OriginalDatabase {
     public: {
       Tables: OriginalDatabase['public']['Tables'] & ExtendedTables;
       Views: OriginalDatabase['public']['Views'];
