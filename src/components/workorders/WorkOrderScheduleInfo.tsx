@@ -30,23 +30,17 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   const { data: scheduleData, isLoading, error } = useQuery({
     queryKey: ['workorder-schedule', workOrderId],
     queryFn: async () => {
-      // First check if this work order has a schedule using direct query
-      const scheduleResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/workorder_schedules?workorder_id=eq.${workOrderId}&select=*&limit=1`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      // First check if this work order has a schedule
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from('workorder_schedules')
+        .select('*')
+        .eq('workorder_id', workOrderId)
+        .limit(1);
       
-      if (!scheduleResponse.ok) {
+      if (scheduleError) {
         throw new Error("Failed to fetch schedule data");
       }
       
-      const scheduleData = await scheduleResponse.json();
       const schedule = scheduleData.length > 0 ? scheduleData[0] : null;
 
       // If there's a schedule, return it
@@ -55,42 +49,30 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
       }
       
       // Check if this work order was created from a schedule
-      const workorderResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/workorders?id=eq.${workOrderId}&select=parent_schedule_id`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      const { data: workorderData, error: workorderError } = await supabase
+        .from('workorders')
+        .select('parent_schedule_id')
+        .eq('id', workOrderId)
+        .limit(1);
       
-      if (!workorderResponse.ok) {
+      if (workorderError) {
         throw new Error("Failed to fetch workorder data");
       }
       
-      const workorderData = await workorderResponse.json();
       const workorder = workorderData.length > 0 ? workorderData[0] : null;
       
       // If this work order was created from a schedule, fetch that schedule
       if (workorder && workorder.parent_schedule_id) {
-        const parentScheduleResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/workorder_schedules?id=eq.${workorder.parent_schedule_id}&select=*&limit=1`,
-          {
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              "Content-Type": "application/json"
-            }
-          }
-        );
+        const { data: parentScheduleData, error: parentScheduleError } = await supabase
+          .from('workorder_schedules')
+          .select('*')
+          .eq('id', workorder.parent_schedule_id)
+          .limit(1);
         
-        if (!parentScheduleResponse.ok) {
+        if (parentScheduleError) {
           throw new Error("Failed to fetch parent schedule data");
         }
         
-        const parentScheduleData = await parentScheduleResponse.json();
         const parentSchedule = parentScheduleData.length > 0 ? parentScheduleData[0] : null;
         
         if (parentSchedule) {
@@ -106,21 +88,12 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   
   const deactivateScheduleMutation = useMutation({
     mutationFn: async (scheduleId: string) => {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/workorder_schedules?id=eq.${scheduleId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-          },
-          body: JSON.stringify({ active: false })
-        }
-      );
+      const { error } = await supabase
+        .from('workorder_schedules')
+        .update({ active: false })
+        .eq('id', scheduleId);
       
-      if (!response.ok) {
+      if (error) {
         throw new Error("Failed to deactivate schedule");
       }
       

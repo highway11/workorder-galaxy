@@ -21,11 +21,14 @@ interface WorkOrderScheduleDialogProps {
 const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: WorkOrderScheduleDialogProps) => {
   const { toast } = useToast();
   const [selectedType, setSelectedType] = useState<string>('monthly');
+  const queryClient = useQueryClient();
   
   const createScheduleMutation = useMutation({
     mutationFn: async (scheduleType: string) => {
-      const { data, error } = await supabase.functions.invoke('create-workorder-schedule', {
-        body: { workorderId: workOrderId, scheduleType },
+      // Call the database function directly
+      const { data, error } = await supabase.rpc('create_workorder_schedule', {
+        p_workorder_id: workOrderId,
+        p_schedule_type: scheduleType,
       });
       
       if (error) {
@@ -35,6 +38,8 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workorder-schedule', workOrderId] });
+      
       toast({
         title: "Schedule Created",
         description: "This work order will now be automatically recreated on schedule."
