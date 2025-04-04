@@ -31,9 +31,12 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
       
       console.log(`Creating schedule for work order ${workOrderId} with type ${scheduleType}`);
       
-      const { data, error } = await supabase.rpc('create_workorder_schedule', {
-        p_workorder_id: workOrderId,
-        p_schedule_type: scheduleType,
+      // Use a raw POST request instead of the RPC method since the TypeScript definitions weren't updated
+      const { data, error } = await supabase.functions.invoke('create-workorder-schedule', {
+        body: {
+          workorderId: workOrderId,
+          scheduleType: scheduleType
+        }
       });
       
       if (error) {

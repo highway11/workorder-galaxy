@@ -36,3 +36,6 @@ verify_jwt = true
 
 [functions.check-scheduled-workorders]
 verify_jwt = false
+
+[functions.create-workorder-schedule]
+verify_jwt = true

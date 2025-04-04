@@ -30,47 +30,68 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   const { data: scheduleData, isLoading, error } = useQuery({
     queryKey: ['workorder-schedule', workOrderId],
     queryFn: async () => {
-      // First check if this work order has a schedule
-      const { data: schedule, error: scheduleError } = await supabase
-        .from('workorder_schedules')
-        .select('*')
-        .eq('workorder_id', workOrderId)
-        .maybeSingle();
+      // First check if this work order has a schedule using direct query
+      const scheduleResponse = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/workorder_schedules?workorder_id=eq.${workOrderId}&select=*&limit=1`,
+        {
+          headers: {
+            apikey: supabase.supabaseKey,
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
       
-      if (scheduleError) {
-        console.error("Error fetching work order schedule:", scheduleError);
-        throw scheduleError;
+      if (!scheduleResponse.ok) {
+        throw new Error("Failed to fetch schedule data");
       }
       
+      const scheduleData = await scheduleResponse.json();
+      const schedule = scheduleData.length > 0 ? scheduleData[0] : null;
+
       // If there's a schedule, return it
       if (schedule) {
         return { type: 'has-schedule', schedule };
       }
       
       // Check if this work order was created from a schedule
-      const { data: workorder, error: workorderError } = await supabase
-        .from('workorders')
-        .select('parent_schedule_id')
-        .eq('id', workOrderId)
-        .maybeSingle();
+      const workorderResponse = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/workorders?id=eq.${workOrderId}&select=parent_schedule_id`,
+        {
+          headers: {
+            apikey: supabase.supabaseKey,
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
       
-      if (workorderError) {
-        console.error("Error fetching work order:", workorderError);
-        throw workorderError;
+      if (!workorderResponse.ok) {
+        throw new Error("Failed to fetch workorder data");
       }
+      
+      const workorderData = await workorderResponse.json();
+      const workorder = workorderData.length > 0 ? workorderData[0] : null;
       
       // If this work order was created from a schedule, fetch that schedule
       if (workorder && workorder.parent_schedule_id) {
-        const { data: parentSchedule, error: parentError } = await supabase
-          .from('workorder_schedules')
-          .select('*')
-          .eq('id', workorder.parent_schedule_id)
-          .maybeSingle();
+        const parentScheduleResponse = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/workorder_schedules?id=eq.${workorder.parent_schedule_id}&select=*&limit=1`,
+          {
+            headers: {
+              apikey: supabase.supabaseKey,
+              Authorization: `Bearer ${supabase.supabaseKey}`,
+              "Content-Type": "application/json"
+            }
+          }
+        );
         
-        if (parentError) {
-          console.error("Error fetching parent schedule:", parentError);
-          throw parentError;
+        if (!parentScheduleResponse.ok) {
+          throw new Error("Failed to fetch parent schedule data");
         }
+        
+        const parentScheduleData = await parentScheduleResponse.json();
+        const parentSchedule = parentScheduleData.length > 0 ? parentScheduleData[0] : null;
         
         if (parentSchedule) {
           return { type: 'from-schedule', schedule: parentSchedule };
@@ -85,10 +106,19 @@ const WorkOrderScheduleInfo = ({ workOrderId }: WorkOrderScheduleInfoProps) => {
   
   const deactivateScheduleMutation = useMutation({
     mutationFn: async (scheduleId: string) => {
-      const { error } = await supabase
-        .from('workorder_schedules')
-        .update({ active: false })
-        .eq('id', scheduleId);
+      const { error } = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/workorder_schedules?id=eq.${scheduleId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: supabase.supabaseKey,
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ active: false })
+        }
+      );
       
       if (error) {
         throw error;

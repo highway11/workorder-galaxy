@@ -144,19 +144,24 @@ const WorkOrderDetail = () => {
     queryFn: async () => {
       if (!id) return false;
       
-      const { data, error } = await supabase
-        .from('workorder_schedules')
-        .select('id')
-        .eq('workorder_id', id)
-        .eq('active', true)
-        .maybeSingle();
+      const response = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/workorder_schedules?workorder_id=eq.${id}&active=eq.true&select=id&limit=1`,
+        {
+          headers: {
+            apikey: supabase.supabaseKey,
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
       
-      if (error) {
-        console.error("Error checking for work order schedule:", error);
+      if (!response.ok) {
+        console.error("Error checking for work order schedule:", response.statusText);
         return false;
       }
       
-      return !!data;
+      const data = await response.json();
+      return data.length > 0;
     },
     enabled: !!id
   });
