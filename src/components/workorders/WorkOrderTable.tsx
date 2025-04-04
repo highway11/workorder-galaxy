@@ -13,6 +13,12 @@ import {
 } from "@/components/ui/table";
 import WorkOrderStatusBadge from './WorkOrderStatusBadge';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type WorkOrderStatus = 'open' | 'in-progress' | 'completed' | 'closed';
 
@@ -109,7 +115,16 @@ const WorkOrderTable = ({
                   {order.wo_number || order.id.substring(0, 8)}
                 </Link>
                 {order.parent_schedule_id && (
-                  <Repeat className="h-4 w-4 text-blue-500" title="Recurring work order" />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Repeat className="h-4 w-4 text-blue-500" aria-label="Recurring work order" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Recurring work order</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
               <WorkOrderStatusBadge status={order.status} />
@@ -172,7 +187,16 @@ const WorkOrderTable = ({
                     {order.wo_number || order.id.substring(0, 8)}
                   </Link>
                   {order.parent_schedule_id && (
-                    <Repeat className="h-4 w-4 text-blue-500" title="Recurring work order" />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Repeat className="h-4 w-4 text-blue-500" aria-label="Recurring work order" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Recurring work order</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               </TableCell>
