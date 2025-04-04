@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Loader2 } from "lucide-react";
@@ -19,56 +18,41 @@ interface WorkOrderScheduleDialogProps {
 }
 
 const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: WorkOrderScheduleDialogProps) => {
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [selectedType, setSelectedType] = useState<string>('monthly');
   
   const createScheduleMutation = useMutation({
     mutationFn: async (scheduleType: string) => {
-      if (!workOrderId) {
-        throw new Error("Work order ID is required");
-      }
-      
-      console.log(`Creating schedule for work order ${workOrderId} with type ${scheduleType}`);
-      
-      // Use a raw POST request instead of the RPC method since the TypeScript definitions weren't updated
       const { data, error } = await supabase.functions.invoke('create-workorder-schedule', {
-        body: {
-          workorderId: workOrderId,
-          scheduleType: scheduleType
-        }
+        body: { workorderId, scheduleType },
       });
       
       if (error) {
-        console.error("Error creating work order schedule:", error);
-        throw new Error(`Failed to create schedule: ${error.message}`);
+        throw new Error(error.message);
       }
       
       return data;
     },
-    onSuccess: (scheduleId) => {
-      console.log("Schedule created successfully:", scheduleId);
-      queryClient.invalidateQueries({ queryKey: ['workorder', workOrderId] });
-      queryClient.invalidateQueries({ queryKey: ['workorder-schedule', workOrderId] });
+    onSuccess: () => {
       toast({
         title: "Schedule Created",
-        description: "The work order has been scheduled for recurring creation."
+        description: "This work order will now be automatically recreated on schedule."
       });
       onSuccess();
       onClose();
     },
     onError: (error) => {
-      console.error("Error in create schedule mutation:", error);
+      console.error("Error creating schedule:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred while creating the schedule",
+        description: `Failed to create schedule: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
   });
-  
+
   const handleSubmit = () => {
-    if (!selectedSchedule) {
+    if (!selectedType) {
       toast({
         title: "Selection Required",
         description: "Please select a schedule type",
@@ -77,7 +61,7 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
       return;
     }
     
-    createScheduleMutation.mutate(selectedSchedule);
+    createScheduleMutation.mutate(selectedType);
   };
   
   const scheduleOptions = getScheduleTypes();
@@ -96,8 +80,8 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
           <div className="space-y-2">
             <Label htmlFor="schedule-select">Select Schedule Type</Label>
             <Select
-              value={selectedSchedule}
-              onValueChange={setSelectedSchedule}
+              value={selectedType}
+              onValueChange={setSelectedType}
             >
               <SelectTrigger id="schedule-select" className="w-full">
                 <SelectValue placeholder="Select a schedule type" />
@@ -120,7 +104,7 @@ const WorkOrderScheduleDialog = ({ isOpen, onClose, workOrderId, onSuccess }: Wo
           <Button variant="outline" onClick={onClose} disabled={createScheduleMutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={createScheduleMutation.isPending || !selectedSchedule}>
+          <Button onClick={handleSubmit} disabled={createScheduleMutation.isPending || !selectedType}>
             {createScheduleMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

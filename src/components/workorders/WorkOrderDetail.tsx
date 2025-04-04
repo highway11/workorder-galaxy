@@ -145,11 +145,11 @@ const WorkOrderDetail = () => {
       if (!id) return false;
       
       const response = await fetch(
-        `${supabase.supabaseUrl}/rest/v1/workorder_schedules?workorder_id=eq.${id}&active=eq.true&select=id&limit=1`,
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/workorder_schedules?workorder_id=eq.${id}&active=eq.true&select=id&limit=1`,
         {
           headers: {
-            apikey: supabase.supabaseKey,
-            Authorization: `Bearer ${supabase.supabaseKey}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             "Content-Type": "application/json"
           }
         }
